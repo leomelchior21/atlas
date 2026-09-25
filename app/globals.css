@@ -1,0 +1,546 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-void: #000000;
+  --color-ink: #ffffff;
+  --color-ash-100: #f2f2f2;
+  --color-ash-200: #d8d8d8;
+  --color-ash-300: #a8a8a8;
+  --color-ash-400: #7a7a7a;
+  --color-ash-500: #4d4d4d;
+  --color-ash-600: #2e2e2e;
+  --color-ash-700: #1c1c1c;
+  --color-ash-800: #121212;
+  --color-ash-900: #0a0a0a;
+
+  --font-display: "Space Grotesk", "Inter", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+}
+
+:root {
+  --s: 1;
+  --inv: 1;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+#atlas-root {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  width: 100vw;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- type */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.tk {
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.tk-2 {
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.tk-3 {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tk-wide {
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+}
+
+.micro {
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-ash-400);
+}
+
+.micro-b {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.quiet {
+  color: var(--color-ash-300);
+}
+
+.quieter {
+  color: var(--color-ash-400);
+}
+
+/* ---------------------------------------------------------------- surfaces */
+
+.hairline {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.hairline-t {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hairline-b {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.rule {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  transition: background 220ms ease, border-color 220ms ease, color 220ms ease;
+}
+
+.btn:hover {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-solid {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.btn-solid:hover {
+  background: var(--color-ash-200);
+  border-color: var(--color-ash-200);
+}
+
+.btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: none;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.btn-solid:disabled:hover {
+  background: #fff;
+  border-color: #fff;
+}
+
+/* ---------------------------------------------------------------- atlas map */
+
+.atlas-surface {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.atlas-label {
+  font-family: var(--font-display);
+  fill: #fff;
+  paint-order: stroke;
+  pointer-events: none;
+}
+
+.atlas-label-subject {
+  font-size: calc(11px * var(--inv));
+  letter-spacing: calc(0.34em * var(--inv));
+  text-transform: uppercase;
+}
+
+.atlas-label-domain {
+  font-size: calc(10.5px * var(--inv));
+  letter-spacing: calc(0.3em * var(--inv));
+  text-transform: uppercase;
+}
+
+.atlas-label-concept {
+  font-size: calc(11.5px * var(--inv));
+  letter-spacing: calc(0.03em * var(--inv));
+  font-weight: 400;
+}
+
+.atlas-label-sub {
+  font-size: calc(11px * var(--inv));
+  letter-spacing: calc(0.02em * var(--inv));
+  fill-opacity: 0.74;
+}
+
+.atlas-dim-external {
+  opacity: 0.3;
+}
+
+.atlas-dim-external .atlas-label-concept,
+.atlas-dim-external .atlas-label-sub {
+  fill-opacity: 0.6;
+}
+
+.atlas-fade-1 {
+  opacity: clamp(0, calc((var(--s) - 0.56) * 4.4), 1);
+}
+
+.atlas-fade-2 {
+  opacity: clamp(0, calc((var(--s) - 1.36) * 2.4), 1);
+}
+
+.atlas-fade-3 {
+  opacity: clamp(0, calc((var(--s) - 2.86) * 2), 1);
+}
+
+.atlas-dim-branch {
+  opacity: 0.14;
+}
+
+.atlas-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.atlas-node-body:hover .atlas-node-core {
+  fill: #fff;
+}
+
+.atlas-node-body:hover .atlas-node-hit {
+  stroke-opacity: 0.85;
+}
+
+.atlas-node-body {
+  cursor: pointer;
+}
+
+.atlas-select {
+  transition: opacity 260ms ease;
+}
+
+@keyframes atlas-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes atlas-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes atlas-pulse-ring {
+  0% {
+    transform: scale(0.86);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.24);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.24);
+    opacity: 0;
+  }
+}
+
+@keyframes atlas-dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes atlas-draw {
+  from {
+    stroke-dashoffset: var(--len, 1000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes atlas-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes atlas-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes atlas-hint-pinch {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.orbit-slow {
+  animation: atlas-orbit 120s linear infinite;
+  transform-origin: center;
+}
+
+.orbit-med {
+  animation: atlas-orbit 64s linear infinite;
+  transform-origin: center;
+}
+
+.orbit-rev {
+  animation: atlas-orbit 88s linear infinite reverse;
+  transform-origin: center;
+}
+
+.breathe {
+  animation: atlas-breathe 6.5s ease-in-out infinite;
+}
+
+.year-pulse {
+  animation: atlas-pulse-ring 5.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.dash-flow {
+  animation: atlas-dash 40s linear infinite;
+}
+
+.fade-in {
+  animation: atlas-fade-in 520ms ease both;
+}
+
+.rise-in {
+  animation: atlas-rise 520ms cubic-bezier(0.16, 0.84, 0.28, 1) both;
+}
+
+.spin-slow {
+  animation: atlas-orbit 40s linear infinite;
+  transform-origin: center;
+}
+
+/* ---------------------------------------------------------------- scroll */
+
+.scroll-thin {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .year-pulse,
+  .orbit-slow,
+  .orbit-med,
+  .orbit-rev,
+  .breathe,
+  .dash-flow,
+  .spin-slow {
+    animation: none !important;
+  }
+}
+
+.atlas-pinch-left {
+  animation: atlas-pinch-a 3.6s cubic-bezier(0.32, 0.72, 0.28, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.atlas-pinch-right {
+  animation: atlas-pinch-b 3.6s cubic-bezier(0.32, 0.72, 0.28, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes atlas-pinch-a {
+  0%, 18% { transform: translateX(4px); opacity: 0.45 }
+  50%, 66% { transform: translateX(-5px); opacity: 1 }
+  100% { transform: translateX(4px); opacity: 0.45 }
+}
+
+@keyframes atlas-pinch-b {
+  0%, 18% { transform: translateX(-4px); opacity: 0.45 }
+  50%, 66% { transform: translateX(5px); opacity: 1 }
+  100% { transform: translateX(-4px); opacity: 0.45 }
+}
+
+@keyframes atlas-sweep {
+  from { transform: translateX(-100%) }
+  to { transform: translateX(220%) }
+}
+
+/* ---------------------------------------------------------------- ranges */
+
+.atlas-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.atlas-range::-webkit-slider-runnable-track {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.atlas-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: none;
+}
+
+.atlas-range::-moz-range-track {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.atlas-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: none;
+}
+
+.atlas-range:focus-visible {
+  outline: none;
+}
+
+.atlas-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.viewport-fit {
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 900px), (orientation: portrait) {
+  .viewport-fit {
+    overflow-y: auto;
+  }
+}
+
+@keyframes atlas-reveal {
+  from { opacity: 0; transform: translateY(6px) }
+  to { opacity: 1; transform: translateY(0) }
+}
+
+.reveal {
+  animation: atlas-reveal 420ms cubic-bezier(0.16, 0.84, 0.28, 1) both;
+}
+
+@keyframes atlas-confirm {
+  0% { opacity: 0; transform: scale(0.96) }
+  35% { opacity: 1 }
+  100% { opacity: 1; transform: scale(1) }
+}
+
+.confirm {
+  animation: atlas-confirm 520ms cubic-bezier(0.16, 0.84, 0.28, 1) both;
+}
