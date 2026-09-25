@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AtlasProvider } from "@/store/atlas-store";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { AtlasMap } from "@/components/atlas/AtlasMap";
-import { ChooserOverlay } from "@/components/atlas/ChooserOverlay";
+import { ConceptLanding } from "@/components/atlas/ConceptLanding";
 import { PlaceholderView } from "@/components/concept/PlaceholderView";
 import { ConceptView } from "@/components/concept/ConceptView";
 import { MarathonView } from "@/components/marathon/MarathonView";
@@ -41,8 +41,8 @@ describe("renderização das telas", () => {
         explored={[]}
         selectedId={null}
         onSelect={() => {}}
-        onActivate={() => {}}
-        onOpenConcept={() => {}}
+        onClearSelection={() => {}}
+        onOpen={() => {}}
       />,
     );
     expect(html).toContain("MATEMÁTICA");
@@ -51,11 +51,16 @@ describe("renderização das telas", () => {
     expect(html).toContain("ENCONTRE SUA ILHA");
   });
 
-  it("renderiza o seletor conceito/maratona", () => {
-    const html = render(<ChooserOverlay nodeId="geo-pythagoras" />);
+  it("renderiza a tela de entrada do conceito", () => {
+    const html = render(<ConceptLanding nodeId="geo-pythagoras" />);
     expect(html).toContain("CONCEITO");
     expect(html).toContain("MARATONA");
-    expect(html).toContain("Pitágoras");
+    expect(html).toContain("PITÁGORAS");
+    expect(html).toContain("← VOLTAR AO MAPA");
+
+    const withBranches = render(<ConceptLanding nodeId="geo-triangles" />);
+    expect(withBranches).toContain("TRIÂNGULOS");
+    expect(withBranches).toContain("EXPLORAR RAMIFICAÇÕES");
   });
 
   it("renderiza o estado de território em mapeamento", () => {
@@ -142,8 +147,17 @@ describe("grafo de conteúdo", () => {
     const [math, physics, chemistry] = ATLAS.subjects;
     expect(ATLAS.subjects.length).toBe(3);
     expect(ATLAS.world[math.id].x).toBe(0);
-    expect(ATLAS.world[physics.id].x).toBeLessThan(-1000);
-    expect(ATLAS.world[chemistry.id].x).toBeGreaterThan(1000);
+    expect(ATLAS.world[physics.id].x).toBeLessThan(-1500);
+    expect(ATLAS.world[chemistry.id].x).toBeGreaterThan(1500);
+  });
+
+  it("mantém as posições determinísticas entre execuções", () => {
+    const geo = ATLAS.world["geo"];
+    const triangles = ATLAS.world["geo-triangles"];
+    const pythagoras = ATLAS.world["geo-pythagoras"];
+    expect(geo).toEqual({ x: 356, y: 18 });
+    expect(Math.round(triangles.x)).toBe(474);
+    expect(Math.round(pythagoras.y)).toBe(230);
   });
 
   it("exige que toda geometria funcional tenha pack de problemas", () => {

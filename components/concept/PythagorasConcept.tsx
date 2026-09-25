@@ -216,6 +216,18 @@ function ExploreScene({
         role="img"
         aria-label={`Triângulo retângulo com catetos ${a} e ${b} e hipotenusa ${round(c, 2)}`}
       >
+        <g id="decoration" opacity="0.05">
+          <circle
+            cx={cx}
+            cy={cy}
+            r={span * 0.62}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="1"
+            strokeDasharray="2 10"
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
         <defs>
           <clipPath id="pyt-square-a">
             <polygon points={toPoints(geometry.squareA)} />
@@ -365,9 +377,11 @@ function ExploreScene({
           {formatNumber(round(c, 2))}
         </text>
 
-        <Segment a={geometry.V} b={geometry.A} opacity={0.95} width={1.3} />
-        <Segment a={geometry.V} b={geometry.B} opacity={0.95} width={1.3} />
-        <Segment a={geometry.A} b={geometry.B} opacity={1} width={1.5} />
+        <g id="geometry-world">
+          <Segment a={geometry.V} b={geometry.A} opacity={0.95} width={1.3} />
+          <Segment a={geometry.V} b={geometry.B} opacity={0.95} width={1.3} />
+          <Segment a={geometry.A} b={geometry.B} opacity={1} width={1.5} />
+        </g>
 
         <Handle
           point={geometry.A}

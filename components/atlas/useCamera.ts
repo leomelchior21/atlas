@@ -9,6 +9,7 @@ import {
   screenToWorld,
   type Camera,
 } from "@/lib/atlas/camera";
+import { computeLevelScales, contentRect, type Rect } from "@/lib/atlas/levels";
 import { computeSemantics, type SemanticState } from "@/lib/atlas/semantics";
 
 interface PointerState {
@@ -23,6 +24,9 @@ export interface UseCameraResult {
   cameraRef: React.MutableRefObject<Camera>;
   viewport: { w: number; h: number };
   semantics: SemanticState;
+  /** safe content rectangle: viewport minus header, bottom rail and detail panel */
+  rect: Rect;
+  measured: boolean;
   hasInteracted: boolean;
   isMoving: boolean;
   flyTo: (x: number, y: number, scale: number, duration?: number) => void;
@@ -31,25 +35,36 @@ export interface UseCameraResult {
   nudge: (dxScreen: number, dyScreen: number) => void;
 }
 
-const BOUNDS_PAD = 2400;
+const BOUNDS_PAD = 3400;
 const TAP_SLOP = 9;
 const DOUBLE_TAP_MS = 330;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-export function useCamera(initial: Camera): UseCameraResult {
+export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const layerRef = useRef<SVGGElement | null>(null);
   const cameraRef = useRef<Camera>({ ...initial });
   const [viewport, setViewport] = useState({ w: 1366, h: 768 });
+  const [measured, setMeasured] = useState(false);
+  const rect = useMemo(() => contentRect(viewport, panelOpen), [viewport, panelOpen]);
   const [semantics, setSemantics] = useState<SemanticState>(() =>
-    computeSemantics(initial, null),
+    computeSemantics(initial, null, contentRect(viewport, panelOpen)),
   );
   const semanticsRef = useRef<SemanticState>(semantics);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
 
-  const animationRef = useRef<{ from: Camera; to: Camera; start: number; duration: number } | null>(
-    null,
-  );
+  const rectRef = useRef(rect);
+  rectRef.current = rect;
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
+
+  const animationRef = useRef<{
+    from: Camera;
+    to: Camera;
+    start: number;
+    duration: number;
+  } | null>(null);
   const velocityRef = useRef({ x: 0, y: 0 });
   const pointersRef = useRef<Map<number, PointerState>>(new Map());
   const pinchRef = useRef<{
@@ -63,14 +78,13 @@ export function useCamera(initial: Camera): UseCameraResult {
   const lastMoveRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const frameRef = useRef(0);
   const scheduleRef = useRef(false);
-  const viewportRef = useRef(viewport);
-  viewportRef.current = viewport;
 
   const write = useCallback(() => {
     const camera = cameraRef.current;
     const { w, h } = viewportRef.current;
     const layer = layerRef.current;
     const container = containerRef.current;
+
     if (layer) {
       layer.setAttribute(
         "transform",
@@ -80,11 +94,32 @@ export function useCamera(initial: Camera): UseCameraResult {
     if (container) {
       container.style.setProperty("--s", String(camera.scale));
       container.style.setProperty("--inv", String(1 / camera.scale));
+      container.style.setProperty("--ease", EASE);
     }
-    const next = computeSemantics(camera, semanticsRef.current);
+
+    const next = computeSemantics(camera, semanticsRef.current, rectRef.current);
     if (next.key !== semanticsRef.current.key) {
       semanticsRef.current = next;
       setSemantics(next);
+    } else {
+      semanticsRef.current = next;
+    }
+  }, []);
+
+  /** publishes the fade windows used by the CSS semantic opacity */
+  const publishLevels = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const scales = computeLevelScales(rectRef.current);
+    const windows: Array<[string, string, number]> = [
+      ["--f1s", "--f1k", scales.fit[1]],
+      ["--f2s", "--f2k", scales.fit[2]],
+      ["--f3s", "--f3k", scales.fit[3]],
+    ];
+    for (const [startVar, slopeVar, fit] of windows) {
+      const start = fit * 0.84;
+      container.style.setProperty(startVar, String(start));
+      container.style.setProperty(slopeVar, String(1 / Math.max(0.0001, fit - start)));
     }
   }, []);
 
@@ -110,7 +145,10 @@ export function useCamera(initial: Camera): UseCameraResult {
       scheduleRef.current = false;
       const animation = animationRef.current;
       if (animation) {
-        const t = Math.min(1, (performance.now() - animation.start) / Math.max(1, animation.duration));
+        const t = Math.min(
+          1,
+          (performance.now() - animation.start) / Math.max(1, animation.duration),
+        );
         const eased = easeInOutCubic(t);
         cameraRef.current = {
           x: animation.from.x + (animation.to.x - animation.from.x) * eased,
@@ -152,10 +190,12 @@ export function useCamera(initial: Camera): UseCameraResult {
     const element = containerRef.current;
     if (!element) return;
     const measure = () => {
-      const rect = element.getBoundingClientRect();
-      setViewport({ w: Math.max(320, rect.width), h: Math.max(320, rect.height) });
+      const bounds = element.getBoundingClientRect();
+      setViewport({ w: Math.max(320, bounds.width), h: Math.max(320, bounds.height) });
+      setMeasured(true);
     };
     measure();
+    publishLevels();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     window.addEventListener("orientationchange", measure);
@@ -163,11 +203,15 @@ export function useCamera(initial: Camera): UseCameraResult {
       observer.disconnect();
       window.removeEventListener("orientationchange", measure);
     };
-  }, []);
+  }, [publishLevels]);
 
   useEffect(() => {
+    publishLevels();
+    const next = computeSemantics(cameraRef.current, semanticsRef.current, rect);
+    semanticsRef.current = next;
+    setSemantics(next);
     write();
-  }, [viewport, write]);
+  }, [rect, viewport, publishLevels, write]);
 
   /* --------------------------------------------------------- gestures */
 
@@ -176,8 +220,8 @@ export function useCamera(initial: Camera): UseCameraResult {
     if (!element) return;
 
     const localPoint = (clientX: number, clientY: number) => {
-      const rect = element.getBoundingClientRect();
-      return { x: clientX - rect.left, y: clientY - rect.top };
+      const bounds = element.getBoundingClientRect();
+      return { x: clientX - bounds.left, y: clientY - bounds.top };
     };
 
     const zoomAt = (factor: number, anchor: { x: number; y: number }, animated: boolean) => {
@@ -199,7 +243,7 @@ export function useCamera(initial: Camera): UseCameraResult {
         from: { ...current },
         to: target,
         start: performance.now(),
-        duration: 420,
+        duration: 620,
       };
       setIsMoving(true);
       schedule();
@@ -270,12 +314,17 @@ export function useCamera(initial: Camera): UseCameraResult {
 
       if (pointersRef.current.size === 1) {
         const [remaining] = [...pointersRef.current.values()];
+        const bounds = element.getBoundingClientRect();
         dragRef.current = {
-          x: remaining.x - element.getBoundingClientRect().left,
-          y: remaining.y - element.getBoundingClientRect().top,
+          x: remaining.x - bounds.left,
+          y: remaining.y - bounds.top,
           camera: { ...cameraRef.current },
         };
-        lastMoveRef.current = { time: performance.now(), x: dragRef.current.x, y: dragRef.current.y };
+        lastMoveRef.current = {
+          time: performance.now(),
+          x: dragRef.current.x,
+          y: dragRef.current.y,
+        };
         return;
       }
 
@@ -294,7 +343,7 @@ export function useCamera(initial: Camera): UseCameraResult {
           Math.hypot(point.x - last.x, point.y - last.y) < 34
         ) {
           lastTapRef.current = null;
-          zoomAt(1.85, point, true);
+          zoomAt(1.7, point, true);
         } else {
           lastTapRef.current = { time: now, x: point.x, y: point.y };
         }
@@ -359,7 +408,7 @@ export function useCamera(initial: Camera): UseCameraResult {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      const step = 150;
+      const step = 160;
       const camera = cameraRef.current;
       if (event.key === "ArrowLeft") applyCamera({ ...camera, x: camera.x - step / camera.scale });
       else if (event.key === "ArrowRight") applyCamera({ ...camera, x: camera.x + step / camera.scale });
@@ -376,7 +425,7 @@ export function useCamera(initial: Camera): UseCameraResult {
   /* --------------------------------------------------------- api */
 
   const flyTo = useCallback(
-    (x: number, y: number, scale: number, duration = 700) => {
+    (x: number, y: number, scale: number, duration = 720) => {
       if (duration <= 0) {
         animationRef.current = null;
         applyCamera({ x, y, scale });
@@ -437,6 +486,8 @@ export function useCamera(initial: Camera): UseCameraResult {
       cameraRef,
       viewport,
       semantics,
+      rect,
+      measured,
       hasInteracted,
       isMoving,
       flyTo,
@@ -447,6 +498,8 @@ export function useCamera(initial: Camera): UseCameraResult {
     [
       viewport,
       semantics,
+      rect,
+      measured,
       hasInteracted,
       isMoving,
       flyTo,

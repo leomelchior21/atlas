@@ -132,15 +132,15 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
     title: "TRIÂNGULOS",
     shortTitle: "Triângulos",
     explanation:
-      "Um triângulo tem três lados e três ângulos internos cuja soma é sempre 180°. Lados e ângulos determinam a classificação.",
+      "Um triângulo tem três lados e três ângulos internos. A soma de seus ângulos é sempre 180°.",
     equation: "α + β + γ = 180°",
     legend: [
-      { symbol: "○", filled: false, label: "lados", detail: "classificam em equilátero, isósceles ou escaleno" },
+      { symbol: "○", filled: false, label: "lados", detail: "classificação pelos lados" },
       {
         symbol: "●",
         filled: true,
         label: "ângulos",
-        detail: "classificam em acutângulo, retângulo ou obtusângulo",
+        detail: "classificação pelos ângulos",
         emphasis: true,
       },
     ],

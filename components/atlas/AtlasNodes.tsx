@@ -1,13 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import { ATLAS } from "@/content";
+import { labelFor, SUB_RADIUS, TOPIC_RADIUS } from "@/content/layout";
 import type { AtlasNode } from "@/types/content";
-
-const SUBJECT_R = 210;
-const DOMAIN_R = 86;
-const TOPIC_R = 26;
-const SUB_R = 12;
 
 interface GlyphProps {
   node: AtlasNode;
@@ -16,17 +11,68 @@ interface GlyphProps {
   yearRelevant: boolean;
   mastered: boolean;
   explored: boolean;
-  active: boolean;
-  /** nodes that are still fading in must not capture taps */
+  selected: boolean;
   interactive: boolean;
   onActivate: (id: string) => void;
+  onHover?: (id: string | null) => void;
 }
 
-function labelAnchor(angle: number) {
-  const cos = Math.cos(angle);
-  if (cos > 0.25) return { anchor: "start" as const, dx: 1 };
-  if (cos < -0.25) return { anchor: "end" as const, dx: -1 };
-  return { anchor: "middle" as const, dx: 0 };
+function labelOffset(node: AtlasNode): number {
+  if (node.depth === 0) return 48;
+  if (node.depth === 1) return 36;
+  if (node.depth === 2) return 28;
+  return 22;
+}
+
+function Label({
+  node,
+  radius,
+  opacity,
+}: {
+  node: AtlasNode;
+  radius: number;
+  opacity: number;
+}) {
+  const { position, offset } = labelFor(node);
+  const gap = labelOffset(node) + offset;
+  const className =
+    node.depth === 0
+      ? "atlas-label atlas-label-subject"
+      : node.depth === 1
+        ? "atlas-label atlas-label-domain"
+        : node.depth === 2
+          ? "atlas-label atlas-label-concept"
+          : "atlas-label atlas-label-sub";
+
+  if (position === "top" || position === "bottom") {
+    const sign = position === "top" ? -1 : 1;
+    return (
+      <text
+        className={className}
+        x={0}
+        y={sign * (radius + gap)}
+        textAnchor="middle"
+        dy={position === "top" ? "0.1em" : "0.78em"}
+        fillOpacity={opacity}
+      >
+        {node.title}
+      </text>
+    );
+  }
+
+  const sign = position === "left" ? -1 : 1;
+  return (
+    <text
+      className={className}
+      x={sign * (radius + gap)}
+      y={0}
+      textAnchor={position === "left" ? "end" : "start"}
+      dy="0.34em"
+      fillOpacity={opacity}
+    >
+      {node.title}
+    </text>
+  );
 }
 
 function AtlasNodeGlyphBase({
@@ -36,19 +82,15 @@ function AtlasNodeGlyphBase({
   yearRelevant,
   mastered,
   explored,
-  active,
+  selected,
   interactive,
   onActivate,
+  onHover,
 }: GlyphProps) {
   const handle = () => onActivate(node.id);
   const isPlaceholder = node.status === "placeholder";
-  const radius =
-    node.depth === 0 ? SUBJECT_R : node.depth === 1 ? DOMAIN_R : node.depth === 2 ? TOPIC_R : SUB_R;
 
-  const parent = node.parentId ? ATLAS.byId[node.parentId] : undefined;
-  const label = `${node.title}${parent && node.depth >= 1 ? ` (em ${parent.title})` : ""}${
-    isPlaceholder ? " — território em mapeamento" : ""
-  }`;
+  const label = `${node.title}${isPlaceholder ? " — território em mapeamento" : ""}`;
   const common = interactive
     ? {
         className: "atlas-node-body",
@@ -57,6 +99,8 @@ function AtlasNodeGlyphBase({
         tabIndex: 0,
         role: "button" as const,
         onClick: handle,
+        onPointerEnter: () => onHover?.(node.id),
+        onPointerLeave: () => onHover?.(null),
         onKeyDown: (event: React.KeyboardEvent) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
@@ -71,15 +115,13 @@ function AtlasNodeGlyphBase({
         style: { pointerEvents: "none" as const },
       };
 
-  const hit = <circle r={radius * 1.35 + 14} fill="transparent" />;
-
   const yearHalo = yearRelevant ? (
     <circle
       className="year-pulse"
-      r={radius * 1.18}
+      r={node.depth === 0 ? 250 * 1.06 : node.depth === 1 ? 92 * 1.14 : TOPIC_RADIUS * 1.3}
       fill="none"
       stroke="#ffffff"
-      strokeOpacity="0.4"
+      strokeOpacity="0.25"
       strokeWidth="1"
       vectorEffect="non-scaling-stroke"
     />
@@ -87,168 +129,176 @@ function AtlasNodeGlyphBase({
 
   const masteryRing = mastered ? (
     <circle
-      r={radius * 0.82}
+      r={node.depth <= 1 ? 92 * 0.82 : TOPIC_RADIUS * 0.86}
       fill="none"
       stroke="#ffffff"
-      strokeOpacity="0.85"
+      strokeOpacity="0.6"
       strokeWidth="1"
-      strokeDasharray="3 5"
+      strokeDasharray="2 6"
       vectorEffect="non-scaling-stroke"
     />
   ) : null;
 
+  const selection = selected ? (
+    <>
+      <circle
+        r={node.depth === 0 ? 250 * 1.06 : node.depth === 1 ? 92 * 1.14 : TOPIC_RADIUS * 1.4}
+        fill="none"
+        stroke="#ffffff"
+        strokeOpacity="0.55"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle
+        className="breathe"
+        r={node.depth === 0 ? 250 * 1.12 : node.depth === 1 ? 92 * 1.2 : TOPIC_RADIUS * 1.5}
+        fill="#ffffff"
+        fillOpacity="0.05"
+      />
+    </>
+  ) : null;
+
+  /* ------------------------------------------------------- subject island */
+
   if (node.depth === 0) {
+    const R = 250;
     return (
       <g {...common}>
-        {hit}
+        <circle r={R + 20} fill="transparent" />
+        {selection}
         {yearHalo}
+
         <g className="orbit-slow">
           <circle
-            r={SUBJECT_R}
+            r={R}
             fill="none"
             stroke="#ffffff"
-            strokeOpacity="0.5"
+            strokeOpacity="0.34"
             strokeWidth="1"
-            strokeDasharray="1.5 9"
+            strokeDasharray="1.5 11"
             vectorEffect="non-scaling-stroke"
           />
-          <circle r="3.4" cy={-SUBJECT_R} fill="#ffffff" fillOpacity="0.85" />
-          <circle cx={SUBJECT_R * 0.72} cy={SUBJECT_R * 0.72} r="2.4" fill="#ffffff" fillOpacity="0.5" />
+          <circle r="3.6" cy={-R} fill="#ffffff" fillOpacity="0.9" />
         </g>
-        <g className="orbit-rev">
-          <circle r={SUBJECT_R * 0.72} fill="none" stroke="#ffffff" strokeOpacity="0.24" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-          <circle cx={-SUBJECT_R * 0.72} r="2.6" fill="#ffffff" fillOpacity="0.6" />
-        </g>
-        <circle r={SUBJECT_R * 0.45} fill="none" stroke="#ffffff" strokeOpacity="0.42" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        <circle r={SUBJECT_R * 0.46} fill="#ffffff" fillOpacity="0.03" />
-        <circle className="breathe" r={SUBJECT_R * 0.2} fill="#ffffff" fillOpacity="0.09" />
-        <circle
-          className="atlas-node-core"
-          r={active ? 16 : 13}
-          fill="#ffffff"
-          fillOpacity={active ? 1 : 0.9}
-        />
-        {masteryRing}
-        <text
-          className="atlas-label atlas-label-subject"
-          y={SUBJECT_R + 56}
-          textAnchor="middle"
-          fillOpacity={active ? 1 : 0.9}
-        >
-          {node.title}
-        </text>
-      </g>
-    );
-  }
 
-  if (node.depth === 1) {
-    return (
-      <g {...common}>
-        {hit}
-        {yearHalo}
         <g className="orbit-med">
           <circle
-            r={DOMAIN_R}
+            r={R * 0.76}
             fill="none"
             stroke="#ffffff"
-            strokeOpacity={isPlaceholder ? 0.26 : 0.5}
+            strokeOpacity="0.3"
             strokeWidth="1"
-            strokeDasharray={isPlaceholder ? "2 15" : "2 9"}
             vectorEffect="non-scaling-stroke"
           />
-          <circle r="2.6" cy={-DOMAIN_R} fill="#ffffff" fillOpacity="0.7" />
+          <circle
+            cx={R * 0.76 * Math.cos(2.2)}
+            cy={R * 0.76 * Math.sin(2.2)}
+            r="2.6"
+            fill="#ffffff"
+            fillOpacity="0.6"
+          />
         </g>
-        <circle r={DOMAIN_R * 0.6} fill="none" stroke="#ffffff" strokeOpacity="0.32" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        <circle className="breathe" r={DOMAIN_R * 0.3} fill="#ffffff" fillOpacity="0.1" />
+
         <circle
-          className="atlas-node-core"
-          r={active ? 9 : 7}
-          fill={isPlaceholder ? "none" : "#ffffff"}
+          className="ring-shift"
+          r={R * 0.48}
+          fill="none"
           stroke="#ffffff"
-          strokeOpacity={isPlaceholder ? 0.7 : 1}
+          strokeOpacity="0.35"
+          strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
+
+        <circle className="breathe" r={R * 0.3} fill="#ffffff" fillOpacity="0.05" />
+        <circle
+          className="atlas-node-core"
+          r={explored ? 15 : 13}
+          fill="#ffffff"
+          fillOpacity={selected ? 1 : 0.92}
+        />
         {masteryRing}
-        <text
-          className="atlas-label atlas-label-domain"
-          y={DOMAIN_R + 34}
-          textAnchor="middle"
-          fillOpacity={active ? 1 : 0.86}
-        >
-          {node.title}
-        </text>
+        <Label node={node} radius={R} opacity={selected ? 1 : 0.94} />
       </g>
     );
   }
 
-  if (node.depth === 2) {
-    const { anchor, dx } = labelAnchor(node.angle);
+  /* -------------------------------------------------------- domain island */
+
+  if (node.depth === 1) {
+    const R = 92;
     return (
       <g {...common}>
-        {hit}
+        <circle r={R + 18} fill="transparent" />
+        {selection}
         {yearHalo}
+
+        <g className="orbit-med">
+          <circle
+            r={R}
+            fill="none"
+            stroke="#ffffff"
+            strokeOpacity={isPlaceholder ? 0.24 : 0.4}
+            strokeWidth="1"
+            strokeDasharray={isPlaceholder ? "2 13" : "1.5 9"}
+            vectorEffect="non-scaling-stroke"
+          />
+          <circle r="2.6" cy={-R} fill="#ffffff" fillOpacity="0.75" />
+        </g>
+
         <circle
-          r={TOPIC_R}
+          r={R * 0.62}
           fill="none"
           stroke="#ffffff"
-          strokeOpacity={node.hasConcept ? 0.62 : isPlaceholder ? 0.24 : 0.4}
+          strokeOpacity="0.26"
           strokeWidth="1"
-          strokeDasharray={isPlaceholder ? "2 7" : node.hasConcept ? undefined : "4 5"}
           vectorEffect="non-scaling-stroke"
         />
+        <circle className="breathe" r={R * 0.34} fill="#ffffff" fillOpacity="0.05" />
         <circle
           className="atlas-node-core"
-          r={active ? 8 : node.hasConcept ? 6.5 : 5}
+          r={selected ? 9 : 7.5}
           fill={isPlaceholder ? "none" : "#ffffff"}
           stroke="#ffffff"
           strokeOpacity={isPlaceholder ? 0.66 : 1}
           vectorEffect="non-scaling-stroke"
         />
-        {explored ? <circle r={TOPIC_R * 0.45} fill="#ffffff" fillOpacity="0.5" /> : null}
         {masteryRing}
-        <text
-          className="atlas-label atlas-label-concept"
-          textAnchor={anchor}
-          x={dx * (TOPIC_R + 18)}
-          dy="0.34em"
-          fillOpacity={active ? 1 : 0.9}
-        >
-          {node.title}
-        </text>
+        <Label node={node} radius={R} opacity={selected ? 1 : 0.88} />
       </g>
     );
   }
 
-  const { anchor, dx } = labelAnchor(node.angle);
+  /* --------------------------------------------------- concept / branch */
+
+  const R = node.depth === 2 ? TOPIC_RADIUS : SUB_RADIUS;
+  const isConcept = node.hasConcept;
   return (
     <g {...common}>
-      {hit}
+      <circle r={R + 16} fill="transparent" />
+      {selection}
       {yearHalo}
       <circle
-        r={SUB_R}
+        r={R}
         fill="none"
         stroke="#ffffff"
-        strokeOpacity="0.3"
+        strokeOpacity={isPlaceholder ? 0.26 : isConcept ? 0.5 : 0.34}
         strokeWidth="1"
-        strokeDasharray="2 5"
+        strokeDasharray={isPlaceholder ? "2 8" : isConcept ? undefined : "3 6"}
         vectorEffect="non-scaling-stroke"
       />
       <circle
         className="atlas-node-core"
-        r={active ? 5 : 3.6}
+        r={selected ? R * 0.3 : isConcept ? R * 0.24 : R * 0.2}
         fill={isPlaceholder ? "none" : "#ffffff"}
         stroke="#ffffff"
         strokeOpacity={isPlaceholder ? 0.6 : 1}
         vectorEffect="non-scaling-stroke"
       />
-      <text
-        className="atlas-label atlas-label-sub"
-        textAnchor={anchor}
-        x={dx * (SUB_R + 12)}
-        dy="0.34em"
-      >
-        {node.title}
-      </text>
+      {explored && node.depth === 2 ? (
+        <circle r={R * 0.5} fill="#ffffff" fillOpacity="0.28" />
+      ) : null}
+      {masteryRing}
+      <Label node={node} radius={R} opacity={selected ? 1 : isConcept ? 0.92 : 0.74} />
     </g>
   );
 }

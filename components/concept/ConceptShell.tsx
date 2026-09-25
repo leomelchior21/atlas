@@ -26,7 +26,7 @@ export function ConceptShell({
     <div className="viewport-fit flex flex-col bg-black">
       <div className="flex min-h-0 flex-1 flex-col gap-6 px-7 pb-2 pt-4 lg:flex-row lg:gap-8">
         {/* left column */}
-        <div className="flex w-full shrink-0 flex-col lg:w-[330px] xl:w-[360px]">
+        <div className="flex w-full shrink-0 flex-col lg:w-[26%] lg:min-w-[292px] lg:max-w-[372px]">
           <button
             type="button"
             onClick={() => onJourney(-1)}
@@ -39,38 +39,34 @@ export function ConceptShell({
           </button>
 
           <p className="micro mb-4">{meta.eyebrow}</p>
-          <h1 className="font-display text-[30px] font-light leading-[1.12] tracking-[0.02em] text-white xl:text-[34px]">
-            {meta.title}
-          </h1>
-          <p className="mt-5 max-w-[330px] text-[13.5px] leading-[1.75] text-white/55">
-            {meta.explanation}
-          </p>
+          <h1 className="t-title text-white">{meta.title}</h1>
+          <p className="t-body mt-5 max-w-[340px]">{meta.explanation}</p>
 
-          <span className="mt-7 mb-6 block h-px w-full bg-white/12" />
+          <span className="mt-7 mb-6 block h-px w-full bg-white/10" />
 
           {equation ?? (
-            <div className="font-display text-[26px] font-light tracking-[0.06em] text-white">
+            <div className="font-display text-[26px] font-light tracking-[0.04em] text-white">
               {meta.equation}
             </div>
           )}
 
-          <span className="mt-7 mb-6 block h-px w-full bg-white/12" />
+          <span className="mt-7 mb-6 block h-px w-full bg-white/10" />
 
-          <ul className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-3.5">
             {meta.legend.map((item) => (
-              <li key={item.label} className="flex items-start gap-4">
+              <li key={item.label} className="flex items-start gap-3.5">
                 <span
                   aria-hidden="true"
-                  className={`mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center text-[11px] leading-none ${
-                    item.emphasis ? "text-white" : "text-white/60"
+                  className={`mt-[2px] flex h-4 w-4 shrink-0 items-center justify-center text-[11px] leading-none ${
+                    item.emphasis ? "text-white" : "text-white/55"
                   }`}
                 >
                   {item.filled ? "●" : "○"}
                 </span>
                 <span className="text-[12.5px] leading-[1.55]">
                   <span className="text-white/85">{item.label}</span>
-                  <span className="mx-2 text-white/30">→</span>
-                  <span className="text-white/50">{item.detail}</span>
+                  <span className="mx-2 text-white/25">→</span>
+                  <span className="text-white/55">{item.detail}</span>
                 </span>
               </li>
             ))}
@@ -85,7 +81,7 @@ export function ConceptShell({
         <div className="relative min-h-[320px] flex-1 lg:min-h-0">{children}</div>
 
         {/* right column */}
-        <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[268px] xl:w-[300px]">
+        <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[26%] lg:min-w-[272px] lg:max-w-[372px]">
           {controls}
         </div>
       </div>
@@ -132,7 +128,7 @@ function JourneyNav({
                 }`}
               />
               <span
-                className={`text-[9.5px] tracking-[0.3em] transition-colors ${
+                className={`text-[10px] tracking-[0.26em] transition-colors ${
                   isActive ? "text-white" : "text-white/40 group-hover:text-white/75"
                 }`}
               >
@@ -161,7 +157,7 @@ export function HintPanel({ title, text }: { title: string; text: string }) {
         </span>
         <span className="text-[10px] tracking-[0.28em] text-white/70">{title}</span>
       </div>
-      <p className="mt-3 text-[12px] leading-[1.65] text-white/45">{text}</p>
+      <p className="mt-3 text-[12.5px] leading-[1.65] text-white/55">{text}</p>
     </div>
   );
 }

@@ -1,12 +1,19 @@
 import { ATLAS } from "@/content";
-import { TIER_THRESHOLDS } from "@/content/layout";
+import type { AtlasNode } from "@/types/content";
 import type { Camera } from "./camera";
+import { computeLevelScales, scaleTier, type LevelScales, type Rect } from "./levels";
 
 export interface SemanticState {
+  /** 0 overview · 1 subject · 2 domain · 3 concept */
   tier: number;
+  /** the node the camera is closest to at the current depth */
   subjectId: string;
   domainId: string | null;
   topicId: string | null;
+  /** the node that acts as the center of this level */
+  centerId: string;
+  thresholds: [number, number, number];
+  scales: LevelScales;
   key: string;
 }
 
@@ -39,45 +46,68 @@ function nearest(
   return best;
 }
 
-export function scaleTier(scale: number): number {
-  if (scale < TIER_THRESHOLDS[0]) return 0;
-  if (scale < TIER_THRESHOLDS[1]) return 1;
-  if (scale < TIER_THRESHOLDS[2]) return 2;
-  return 3;
+/** children that can act as the center of a deeper level */
+function centerCandidates(parentId: string | null): string[] {
+  if (!parentId) return ATLAS.subjects.map((node) => node.id);
+  return (ATLAS.childrenOf[parentId] ?? [])
+    .filter((child) => (ATLAS.childrenOf[child.id] ?? []).length > 0 || child.hasConcept)
+    .map((child) => child.id);
 }
 
-export function computeSemantics(camera: Camera, previous: SemanticState | null): SemanticState {
-  const tier = scaleTier(camera.scale);
-  const subjectIds = ATLAS.subjects.map((n) => n.id);
+export function computeSemantics(
+  camera: Camera,
+  previous: SemanticState | null,
+  rect: Rect,
+): SemanticState {
+  const scales = computeLevelScales(rect);
+  const thresholds = scales.thresholds;
+  const tier = scaleTier(camera.scale, thresholds);
+
   const subjectId =
-    nearest(camera, subjectIds, previous?.subjectId ?? null, 0.74) ?? subjectIds[0];
-
-  let domainId: string | null = null;
-  if (subjectId) {
-    const domains = (ATLAS.childrenOf[subjectId] ?? []).map((n) => n.id);
-    domainId = nearest(
+    nearest(
       camera,
-      domains,
-      previous?.subjectId === subjectId ? (previous?.domainId ?? null) : null,
-      0.8,
-    );
-  }
+      ATLAS.subjects.map((node) => node.id),
+      previous?.subjectId ?? null,
+      0.74,
+    ) ?? "math-root";
 
-  let topicId: string | null = null;
-  if (domainId) {
-    const topics = (ATLAS.childrenOf[domainId] ?? []).map((n) => n.id);
-    topicId = nearest(
-      camera,
-      topics,
-      previous?.domainId === domainId ? (previous?.topicId ?? null) : null,
-      0.8,
-    );
-  }
+  const domainId = nearest(
+    camera,
+    (ATLAS.childrenOf[subjectId] ?? []).map((node) => node.id),
+    previous?.subjectId === subjectId ? (previous?.domainId ?? null) : null,
+    0.8,
+  );
 
-  const key = `${tier}|${subjectId}|${domainId ?? "-"}|${topicId ?? "-"}`;
-  return { tier, subjectId, domainId, topicId, key };
+  const topicId = domainId
+    ? nearest(
+        camera,
+        centerCandidates(domainId),
+        previous?.domainId === domainId ? (previous?.topicId ?? null) : null,
+        0.8,
+      )
+    : null;
+
+  const centerId =
+    tier === 0
+      ? "math-root"
+      : tier === 1
+        ? subjectId
+        : tier === 2
+          ? (domainId ?? subjectId)
+          : (topicId ?? domainId ?? subjectId);
+
+  return {
+    tier,
+    subjectId,
+    domainId,
+    topicId,
+    centerId,
+    thresholds,
+    scales,
+    key: `${tier}|${centerId}`,
+  };
 }
 
-export function subjectIds(): string[] {
-  return ATLAS.subjects.map((n) => n.id);
+export function nodeAtDepth(id: string | null): AtlasNode | undefined {
+  return id ? ATLAS.byId[id] : undefined;
 }

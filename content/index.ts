@@ -3,6 +3,7 @@ import {
   buildDomainNodes,
   buildSubjectNodes,
   fanPhase,
+  SUBJECT_ORIGIN,
   type DomainSeed,
   type NodeSeed,
 } from "./layout";
@@ -10,12 +11,6 @@ import { CHEMISTRY_DOMAINS, CHEMISTRY_ID } from "./chemistry";
 import { MATH_DOMAINS, MATH_ID } from "./math";
 import { PHYSICS_DOMAINS, PHYSICS_ID } from "./physics";
 import type { AtlasGraph, AtlasNode, Vec2 } from "@/types/content";
-
-export const SUBJECT_ORIGIN: Record<string, Vec2> = {
-  [MATH_ID]: { x: 0, y: 0 },
-  [PHYSICS_ID]: { x: -1580, y: -140 },
-  [CHEMISTRY_ID]: { x: 1580, y: 140 },
-};
 
 function expand(domain: AtlasNode, seeds: NodeSeed[]): AtlasNode[] {
   if (!seeds.length) return [];
@@ -26,7 +21,12 @@ function expand(domain: AtlasNode, seeds: NodeSeed[]): AtlasNode[] {
     const source = seeds.find((s) => s.id === topic.id);
     if (source?.children?.length) {
       out.push(
-        ...buildChildNodes(topic, source.children, 3, fanPhase(source.children.length, topic.id.length)),
+        ...buildChildNodes(
+          topic,
+          source.children,
+          3,
+          fanPhase(source.children.length, topic.id.length),
+        ),
       );
     }
   }
@@ -40,7 +40,12 @@ function buildSubject(
   domains: DomainSeed[],
 ): AtlasNode[] {
   const root = buildSubjectNodes(subject, SUBJECT_ORIGIN[id], id, title);
-  const domainNodes = buildDomainNodes(subject, domains);
+  const domainNodes = buildDomainNodes(
+    subject,
+    domains,
+    id,
+    subject === "math" ? "math" : "ring",
+  );
   const nodes: AtlasNode[] = [root, ...domainNodes];
   for (let i = 0; i < domains.length; i++) {
     nodes.push(...expand(domainNodes[i], domains[i].children));
@@ -84,7 +89,8 @@ function assemble(): AtlasGraph {
   let maxY = -Infinity;
   for (const node of nodes) {
     const p = world[node.id];
-    const pad = node.depth === 0 ? 280 : node.depth === 1 ? 260 : node.depth === 2 ? 190 : 90;
+    const pad =
+      node.depth === 0 ? 300 : node.depth === 1 ? 200 : node.depth === 2 ? 120 : 60;
     minX = Math.min(minX, p.x - pad);
     maxX = Math.max(maxX, p.x + pad);
     minY = Math.min(minY, p.y - pad);
@@ -95,18 +101,7 @@ function assemble(): AtlasGraph {
     node.connections = node.connections.filter((target) => Boolean(byId[target]));
   }
 
-  const subjectOrder = ["math", "physics", "chemistry"];
-  const order = [...nodes]
-    .sort((a, b) => a.depth - b.depth)
-    .map((n) => n.id)
-    .sort((a, b) => {
-      const na = byId[a];
-      const nb = byId[b];
-      return (
-        subjectOrder.indexOf(na.subject) - subjectOrder.indexOf(nb.subject) ||
-        na.depth - nb.depth
-      );
-    });
+  const order = [...nodes].sort((a, b) => a.depth - b.depth).map((n) => n.id);
 
   return {
     nodes,
@@ -152,31 +147,15 @@ export function descendantIds(id: string): string[] {
   return out;
 }
 
-export function subtreeBounds(id: string): {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-} {
-  const ids = [id, ...descendantIds(id)];
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const nodeId of ids) {
-    const p = ATLAS.world[nodeId];
-    const node = ATLAS.byId[nodeId];
-    const pad = node.depth >= 3 ? 120 : 220;
-    minX = Math.min(minX, p.x - pad);
-    maxX = Math.max(maxX, p.x + pad);
-    minY = Math.min(minY, p.y - pad);
-    maxY = Math.max(maxY, p.y + pad);
-  }
-  return { minX, maxX, minY, maxY };
-}
-
 export function pathToNode(id: string): AtlasNode[] {
   const node = ATLAS.byId[id];
   if (!node) return [];
   return [...ancestorsOf(id), node];
+}
+
+/** the chain of ancestors that must stay visible while a node is focused */
+export function isInLineage(nodeId: string, focusId: string | null): boolean {
+  if (!focusId) return false;
+  if (nodeId === focusId) return true;
+  return ancestorsOf(focusId).some((ancestor) => ancestor.id === nodeId);
 }

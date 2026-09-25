@@ -102,8 +102,8 @@ export function PointHandle({
           dy={-radius - 4}
           fill={INK}
           fillOpacity="0.75"
-          fontSize="11"
-          letterSpacing="0.06em"
+          fontSize={radius * 1.7}
+          letterSpacing="0.02em"
         >
           {label}
         </text>
@@ -146,20 +146,22 @@ export function AngleArc({
   vertex,
   armA,
   armB,
-  radius = 34,
+  radius,
   label,
-  labelOffset = 16,
+  labelOffset,
   opacity = 0.8,
   filled = false,
+  fontSize,
 }: {
   vertex: Point;
   armA: Point;
   armB: Point;
-  radius?: number;
+  radius: number;
   label?: string;
   labelOffset?: number;
   opacity?: number;
   filled?: boolean;
+  fontSize?: number;
 }) {
   const ua = unit(vertex, armA);
   const ub = unit(vertex, armB);
@@ -167,9 +169,11 @@ export function AngleArc({
   const end = { x: vertex.x + ub.x * radius, y: vertex.y + ub.y * radius };
   const sweep = cross(ua, ub) > 0 ? 1 : 0;
   const middle = bisector(ua, ub);
+  const gap = labelOffset ?? radius * 0.55;
+  const textSize = fontSize ?? radius * 0.6;
   const labelPoint = {
-    x: vertex.x + middle.x * (radius + labelOffset),
-    y: vertex.y + middle.y * (radius + labelOffset),
+    x: vertex.x + middle.x * (radius + gap),
+    y: vertex.y + middle.y * (radius + gap),
   };
   return (
     <g>
@@ -190,8 +194,8 @@ export function AngleArc({
           dy="0.34em"
           fill={INK}
           fillOpacity="0.85"
-          fontSize="11.5"
-          letterSpacing="0.05em"
+          fontSize={textSize}
+          letterSpacing="0.02em"
         >
           {label}
         </text>
@@ -207,7 +211,7 @@ export function DimensionLabel({
   offset = 20,
   align = "middle",
   opacity = 0.85,
-  fontSize = 12,
+  fontSize,
 }: {
   a: Point;
   b: Point;
@@ -219,6 +223,7 @@ export function DimensionLabel({
 }) {
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   const normal = outwardNormal(a, b, offset);
+  const size = fontSize ?? Math.min(1.4, Math.max(0.5, Math.hypot(b.x - a.x, b.y - a.y) * 0.14));
   return (
     <text
       x={mid.x + normal.x}
@@ -227,8 +232,8 @@ export function DimensionLabel({
       dy="0.34em"
       fill={INK}
       fillOpacity={opacity}
-      fontSize={fontSize}
-      letterSpacing="0.05em"
+      fontSize={size}
+      letterSpacing="0.02em"
     >
       {text}
     </text>

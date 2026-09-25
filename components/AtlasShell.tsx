@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ATLAS } from "@/content";
 import { AtlasMap } from "@/components/atlas/AtlasMap";
-import { ChooserOverlay } from "@/components/atlas/ChooserOverlay";
 import { AtlasMark } from "@/components/atlas/AtlasLogo";
+import { ConceptLanding } from "@/components/atlas/ConceptLanding";
 import { ConnectionsPanel, TopBar } from "@/components/atlas/TopBar";
 import { ConceptView } from "@/components/concept/ConceptView";
 import { PlaceholderView } from "@/components/concept/PlaceholderView";
@@ -12,11 +12,11 @@ import { DevPanel } from "@/components/dev/DevPanel";
 import { MarathonView } from "@/components/marathon/MarathonView";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { useAtlas } from "@/store/atlas-store";
+import { useState } from "react";
 
 export function AtlasShell() {
-  const { ready, progress, view, actions, focus, studentYear } = useAtlas();
+  const { ready, progress, view, actions, focus, studentYear, selectedId } = useAtlas();
   const [connectionsOpen, setConnectionsOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const masteryByNode = useMemo(() => {
     const map: Record<string, number> = {};
@@ -35,12 +35,12 @@ export function AtlasShell() {
     return <Onboarding onComplete={actions.completeOnboarding} />;
   }
 
-  const focusedNodeId =
-    view.kind === "map" ? selectedId : view.nodeId;
+  const immersive = view.kind === "concept" || view.kind === "marathon";
 
   return (
     <div className="flex h-full w-full flex-col bg-black">
       <TopBar
+        compact={immersive}
         connectionsOpen={connectionsOpen}
         onToggleConnections={() => setConnectionsOpen((value) => !value)}
       />
@@ -52,22 +52,25 @@ export function AtlasShell() {
           masteryByNode={masteryByNode}
           explored={progress.explored}
           selectedId={selectedId}
-          onSelect={setSelectedId}
-          onActivate={actions.openNode}
-          onOpenConcept={actions.openConcept}
+          onSelect={(nodeId) => {
+            setConnectionsOpen(false);
+            actions.selectNode(nodeId);
+          }}
+          onClearSelection={actions.clearSelection}
+          onOpen={actions.openNode}
         />
 
-        {view.kind === "chooser" ? <ChooserOverlay nodeId={view.nodeId} /> : null}
+        {view.kind === "landing" ? <ConceptLanding nodeId={view.nodeId} /> : null}
 
         {view.kind === "concept" ? (
           <div className="absolute inset-0 z-30 bg-black fade-in">
-            <ConceptView conceptId={view.conceptId} onLeave={actions.backToChooser} />
+            <ConceptView conceptId={view.conceptId} onLeave={actions.backToLanding} />
           </div>
         ) : null}
 
         {view.kind === "marathon" ? (
           <div className="absolute inset-0 z-30 bg-black fade-in">
-            <MarathonView onExit={actions.backToChooser} />
+            <MarathonView onExit={actions.backToLanding} />
           </div>
         ) : null}
 
@@ -78,7 +81,10 @@ export function AtlasShell() {
         ) : null}
 
         {connectionsOpen ? (
-          <ConnectionsPanel nodeId={focusedNodeId} onClose={() => setConnectionsOpen(false)} />
+          <ConnectionsPanel
+            nodeId={selectedId ?? focus?.nodeId ?? null}
+            onClose={() => setConnectionsOpen(false)}
+          />
         ) : null}
       </div>
 
@@ -98,7 +104,10 @@ function BootScreen() {
         ATLAS
       </span>
       <span className="relative mt-8 block h-px w-[120px] overflow-hidden bg-white/10">
-        <span className="absolute inset-y-0 w-1/2 bg-white/60" style={{ animation: "atlas-sweep 1.4s ease-in-out infinite" }} />
+        <span
+          className="absolute inset-y-0 w-1/2 bg-white/60"
+          style={{ animation: "atlas-sweep 1.4s ease-in-out infinite" }}
+        />
       </span>
     </div>
   );
@@ -108,7 +117,10 @@ const DIFFICULTY_WEIGHT: Record<string, number> = { leve: 1, normal: 1.6, avanca
 const EXPOSURE_TARGET = 4;
 
 function masteryOf(record: {
-  byDifficulty: Record<string, { attempts: number; correct: number; families: Record<string, { correct: number }> }>;
+  byDifficulty: Record<
+    string,
+    { attempts: number; correct: number; families: Record<string, { correct: number }> }
+  >;
   recent: unknown[];
   streak: number;
 }): number {
