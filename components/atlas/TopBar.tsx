@@ -66,7 +66,7 @@ export function TopBar({
                     type="button"
                     onClick={() => {
                       if (index === path.length - 1) return;
-                      actions.selectNode(node.id);
+                      actions.expandTo(node.id);
                     }}
                     className={`max-w-[150px] truncate uppercase transition-colors ${
                       index === path.length - 1
@@ -188,8 +188,8 @@ export function ConnectionsPanel({
       </p>
 
       <div className="mt-8 flex flex-col gap-7 overflow-y-auto scroll-thin pr-1">
-        <ConnectionGroup title="LEVA A" items={outgoing as never[]} onActivate={actions.selectNode} />
-        <ConnectionGroup title="VEM DE" items={incoming as never[]} onActivate={actions.selectNode} />
+        <ConnectionGroup title="LEVA A" items={outgoing as never[]} onActivate={actions.expandTo} />
+        <ConnectionGroup title="VEM DE" items={incoming as never[]} onActivate={actions.expandTo} />
       </div>
 
       <button

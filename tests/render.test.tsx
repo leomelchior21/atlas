@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AtlasProvider } from "@/store/atlas-store";
 import { Onboarding } from "@/components/onboarding/Onboarding";
-import { AtlasMap } from "@/components/atlas/AtlasMap";
+import { MindMap } from "@/components/atlas/MindMap";
 import { ConceptLanding } from "@/components/atlas/ConceptLanding";
 import { PlaceholderView } from "@/components/concept/PlaceholderView";
 import { ConceptView } from "@/components/concept/ConceptView";
@@ -32,23 +32,38 @@ describe("renderização das telas", () => {
     expect(html).toContain("ATLAS");
   });
 
-  it("renderiza o mapa com as três ilhas", () => {
-    const html = render(
-      <AtlasMap
-        focus={null}
-        studentYear={8}
-        masteryByNode={{}}
-        explored={[]}
-        selectedId={null}
-        onSelect={() => {}}
-        onClearSelection={() => {}}
-        onOpen={() => {}}
-      />,
-    );
+  const mapProps = {
+    focus: null,
+    studentYear: 8,
+    masteryByNode: {},
+    explored: [],
+    selectedId: null,
+    onSelect: () => {},
+    onToggleExpanded: () => {},
+    onSetExpanded: () => {},
+    onClearSelection: () => {},
+    onOpen: () => {},
+  };
+
+  it("renderiza o mapa mental com as três ilhas", () => {
+    const html = render(<MindMap {...mapProps} expanded={["__atlas"]} />);
     expect(html).toContain("MATEMÁTICA");
     expect(html).toContain("FÍSICA");
     expect(html).toContain("QUÍMICA");
     expect(html).toContain("ENCONTRE SUA ILHA");
+  });
+
+  it("abre um nível de cada vez", () => {
+    const closed = render(<MindMap {...mapProps} expanded={["__atlas"]} />);
+    expect(closed).not.toContain("NÚMEROS");
+    expect(closed).not.toContain("GEOMETRIA");
+
+    const opened = render(
+      <MindMap {...mapProps} expanded={["__atlas", "math-root"]} />,
+    );
+    expect(opened).toContain("NÚMEROS");
+    expect(opened).toContain("GEOMETRIA");
+    expect(opened).not.toContain("Pitágoras");
   });
 
   it("renderiza a tela de entrada do conceito", () => {

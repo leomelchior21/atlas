@@ -9,8 +9,7 @@ import {
   screenToWorld,
   type Camera,
 } from "@/lib/atlas/camera";
-import { computeLevelScales, contentRect, type Rect } from "@/lib/atlas/levels";
-import { computeSemantics, type SemanticState } from "@/lib/atlas/semantics";
+import { contentRect, type Rect } from "@/lib/atlas/viewport";
 
 interface PointerState {
   id: number;
@@ -23,8 +22,7 @@ export interface UseCameraResult {
   layerRef: React.RefObject<SVGGElement | null>;
   cameraRef: React.MutableRefObject<Camera>;
   viewport: { w: number; h: number };
-  semantics: SemanticState;
-  /** safe content rectangle: viewport minus header, bottom rail and detail panel */
+  /** safe content rectangle: viewport minus bottom rail and detail panel */
   rect: Rect;
   measured: boolean;
   hasInteracted: boolean;
@@ -47,15 +45,9 @@ export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult 
   const [viewport, setViewport] = useState({ w: 1366, h: 768 });
   const [measured, setMeasured] = useState(false);
   const rect = useMemo(() => contentRect(viewport, panelOpen), [viewport, panelOpen]);
-  const [semantics, setSemantics] = useState<SemanticState>(() =>
-    computeSemantics(initial, null, contentRect(viewport, panelOpen)),
-  );
-  const semanticsRef = useRef<SemanticState>(semantics);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
 
-  const rectRef = useRef(rect);
-  rectRef.current = rect;
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
 
@@ -97,30 +89,6 @@ export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult 
       container.style.setProperty("--ease", EASE);
     }
 
-    const next = computeSemantics(camera, semanticsRef.current, rectRef.current);
-    if (next.key !== semanticsRef.current.key) {
-      semanticsRef.current = next;
-      setSemantics(next);
-    } else {
-      semanticsRef.current = next;
-    }
-  }, []);
-
-  /** publishes the fade windows used by the CSS semantic opacity */
-  const publishLevels = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const scales = computeLevelScales(rectRef.current);
-    const windows: Array<[string, string, number]> = [
-      ["--f1s", "--f1k", scales.fit[1]],
-      ["--f2s", "--f2k", scales.fit[2]],
-      ["--f3s", "--f3k", scales.fit[3]],
-    ];
-    for (const [startVar, slopeVar, fit] of windows) {
-      const start = fit * 0.84;
-      container.style.setProperty(startVar, String(start));
-      container.style.setProperty(slopeVar, String(1 / Math.max(0.0001, fit - start)));
-    }
   }, []);
 
   const applyCamera = useCallback(
@@ -195,7 +163,6 @@ export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult 
       setMeasured(true);
     };
     measure();
-    publishLevels();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     window.addEventListener("orientationchange", measure);
@@ -203,15 +170,11 @@ export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult 
       observer.disconnect();
       window.removeEventListener("orientationchange", measure);
     };
-  }, [publishLevels]);
+  }, []);
 
   useEffect(() => {
-    publishLevels();
-    const next = computeSemantics(cameraRef.current, semanticsRef.current, rect);
-    semanticsRef.current = next;
-    setSemantics(next);
     write();
-  }, [rect, viewport, publishLevels, write]);
+  }, [rect, viewport, write]);
 
   /* --------------------------------------------------------- gestures */
 
@@ -485,7 +448,6 @@ export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult 
       layerRef,
       cameraRef,
       viewport,
-      semantics,
       rect,
       measured,
       hasInteracted,
@@ -497,7 +459,6 @@ export function useCamera(initial: Camera, panelOpen: boolean): UseCameraResult 
     }),
     [
       viewport,
-      semantics,
       rect,
       measured,
       hasInteracted,

@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { ATLAS } from "@/content";
+import { ancestorsToExpand, ATLAS_ROOT_ID } from "@/lib/atlas/tree";
 import { computeMastery, type MasteryBreakdown } from "@/engine/mastery";
 import {
   localRepository,
@@ -46,6 +47,7 @@ interface AtlasContextValue {
   difficulty: DifficultyId;
   focus: FocusRequest | null;
   selectedId: string | null;
+  expanded: string[];
   studentName: string;
   studentYear: number;
   xp: number;
@@ -53,6 +55,9 @@ interface AtlasContextValue {
     completeOnboarding: (name: string, year: number) => void;
     setDifficulty: (difficulty: DifficultyId) => void;
     selectNode: (nodeId: string) => void;
+    toggleExpanded: (nodeId: string) => void;
+    setExpanded: (ids: string[]) => void;
+    expandTo: (nodeId: string) => void;
     clearSelection: () => void;
     openNode: (nodeId: string) => void;
     openConcept: (nodeId?: string) => void;
@@ -129,6 +134,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
   const [difficulty, setDifficultyState] = useState<DifficultyId>("normal");
   const [focus, setFocus] = useState<FocusRequest | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string[]>([ATLAS_ROOT_ID]);
   const nonce = useRef(0);
 
   useEffect(() => {
@@ -142,10 +148,36 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
     setFocus({ nodeId, nonce: nonce.current });
   }, []);
 
-  /** tapping a node inspects it: it becomes the center of the view */
+  /** tapping a node inspects it: the panel follows, the tree keeps its place */
   const selectNode = useCallback(
     (nodeId: string) => {
       if (!ATLAS.byId[nodeId]) return;
+      setSelectedId(nodeId);
+      setView({ kind: "map" });
+      commit(markExplored(state, nodeId, ATLAS.byId[nodeId]?.conceptId));
+    },
+    [],
+  );
+
+  const clearSelection = useCallback(() => setSelectedId(null), []);
+
+  const toggleExpanded = useCallback((nodeId: string) => {
+    setExpanded((current) =>
+      current.includes(nodeId)
+        ? current.filter((id) => id !== nodeId)
+        : [...current, nodeId],
+    );
+  }, []);
+
+  const setExpandedTo = useCallback((ids: string[]) => {
+    setExpanded(ids.includes(ATLAS_ROOT_ID) ? ids : [ATLAS_ROOT_ID, ...ids]);
+  }, []);
+
+  /** makes a node visible wherever it is: opens every ancestor and frames it */
+  const expandTo = useCallback(
+    (nodeId: string) => {
+      const chain = ancestorsToExpand(nodeId);
+      setExpanded((current) => [...new Set([...current, ...chain])]);
       setSelectedId(nodeId);
       setView({ kind: "map" });
       requestFocus(nodeId);
@@ -153,8 +185,6 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
     },
     [requestFocus],
   );
-
-  const clearSelection = useCallback(() => setSelectedId(null), []);
 
   /** the explicit action button inside the panel */
   const openNode = useCallback(
@@ -239,6 +269,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
     commit(emptyProgress());
     setView({ kind: "map" });
     setSelectedId(null);
+    setExpanded([ATLAS_ROOT_ID]);
   }, []);
 
   const value = useMemo<AtlasContextValue>(
@@ -249,6 +280,7 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       difficulty,
       focus,
       selectedId,
+      expanded,
       studentName: progress.student?.name ?? "",
       studentYear: progress.student?.year ?? 8,
       xp: progress.xp,
@@ -256,6 +288,9 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
         completeOnboarding,
         setDifficulty,
         selectNode,
+        toggleExpanded,
+        setExpanded: setExpandedTo,
+        expandTo,
         clearSelection,
         openNode,
         openConcept,
@@ -275,9 +310,13 @@ export function AtlasProvider({ children }: { children: ReactNode }) {
       difficulty,
       focus,
       selectedId,
+      expanded,
       completeOnboarding,
       setDifficulty,
       selectNode,
+      toggleExpanded,
+      setExpandedTo,
+      expandTo,
       clearSelection,
       openNode,
       openConcept,

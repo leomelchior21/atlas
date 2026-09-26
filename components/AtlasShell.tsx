@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { ATLAS } from "@/content";
-import { AtlasMap } from "@/components/atlas/AtlasMap";
 import { AtlasMark } from "@/components/atlas/AtlasLogo";
 import { ConceptLanding } from "@/components/atlas/ConceptLanding";
+import { MindMap } from "@/components/atlas/MindMap";
 import { ConnectionsPanel, TopBar } from "@/components/atlas/TopBar";
 import { ConceptView } from "@/components/concept/ConceptView";
 import { PlaceholderView } from "@/components/concept/PlaceholderView";
@@ -15,7 +15,8 @@ import { useAtlas } from "@/store/atlas-store";
 import { useState } from "react";
 
 export function AtlasShell() {
-  const { ready, progress, view, actions, focus, studentYear, selectedId } = useAtlas();
+  const { ready, progress, view, actions, focus, studentYear, selectedId, expanded } =
+    useAtlas();
   const [connectionsOpen, setConnectionsOpen] = useState(false);
 
   const masteryByNode = useMemo(() => {
@@ -46,16 +47,19 @@ export function AtlasShell() {
       />
 
       <div className="relative min-h-0 flex-1">
-        <AtlasMap
+        <MindMap
           focus={focus}
           studentYear={studentYear}
           masteryByNode={masteryByNode}
           explored={progress.explored}
+          expanded={expanded}
           selectedId={selectedId}
           onSelect={(nodeId) => {
             setConnectionsOpen(false);
             actions.selectNode(nodeId);
           }}
+          onToggleExpanded={actions.toggleExpanded}
+          onSetExpanded={actions.setExpanded}
           onClearSelection={actions.clearSelection}
           onOpen={actions.openNode}
         />

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ATLAS, descendantIds } from "@/content";
 import type { Camera } from "@/lib/atlas/camera";
+import type { Bounds } from "@/lib/atlas/viewport";
 
 interface MiniMapProps {
   cameraRef: React.MutableRefObject<Camera>;
   viewport: { w: number; h: number };
-  focusSubjectId: string | null;
+  bounds: Bounds;
+  dots: Array<{ id: string; x: number; y: number; depth: number }>;
   onNavigate: (x: number, y: number) => void;
 }
 
@@ -15,35 +16,9 @@ const WIDTH = 164;
 const HEIGHT = 104;
 const PADDING = 9;
 
-export function MiniMap({ cameraRef, viewport, focusSubjectId, onNavigate }: MiniMapProps) {
+export function MiniMap({ cameraRef, viewport, bounds, dots, onNavigate }: MiniMapProps) {
   const rectRef = useRef<SVGRectElement | null>(null);
   const [dragging, setDragging] = useState(false);
-
-  const { bounds, dots } = useMemo(() => {
-    const rootId = focusSubjectId ?? "math-root";
-    const ids = [rootId, ...descendantIds(rootId)];
-    const points = ids
-      .map((id) => ({ id, node: ATLAS.byId[id], point: ATLAS.world[id] }))
-      .filter((entry) => entry.node && entry.point);
-
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    for (const entry of points) {
-      minX = Math.min(minX, entry.point.x);
-      maxX = Math.max(maxX, entry.point.x);
-      minY = Math.min(minY, entry.point.y);
-      maxY = Math.max(maxY, entry.point.y);
-    }
-    const pad = 260;
-    return {
-      bounds: { minX: minX - pad, maxX: maxX + pad, minY: minY - pad, maxY: maxY + pad },
-      dots: points
-        .filter((entry) => (entry.node?.depth ?? 9) <= 2)
-        .map((entry) => ({ id: entry.id, point: entry.point, depth: entry.node!.depth })),
-    };
-  }, [focusSubjectId]);
 
   const transform = useMemo(() => {
     const width = Math.max(1, bounds.maxX - bounds.minX);
@@ -112,8 +87,8 @@ export function MiniMap({ cameraRef, viewport, focusSubjectId, onNavigate }: Min
         {dots.map((dot) => (
           <circle
             key={dot.id}
-            cx={transform.offsetX + dot.point.x * transform.scale}
-            cy={transform.offsetY + dot.point.y * transform.scale}
+            cx={transform.offsetX + dot.x * transform.scale}
+            cy={transform.offsetY + dot.y * transform.scale}
             r={dot.depth === 0 ? 2.4 : dot.depth === 1 ? 1.4 : 0.8}
             fill="#ffffff"
             fillOpacity={dot.depth === 0 ? 0.8 : dot.depth === 1 ? 0.45 : 0.25}

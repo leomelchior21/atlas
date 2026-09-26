@@ -278,26 +278,21 @@ input {
   letter-spacing: calc(0.01em * var(--inv));
 }
 
-.atlas-fade-1 {
-  opacity: clamp(0, calc((var(--s) - var(--f1s, 0)) * var(--f1k, 100)), 1);
+/* branches draw themselves when a level opens */
+.atlas-branch {
+  stroke-linecap: round;
+  animation: atlas-draw 620ms var(--ease) both;
 }
 
-.atlas-fade-2 {
-  opacity: clamp(0, calc((var(--s) - var(--f2s, 0)) * var(--f2k, 100)), 1);
-}
-
-.atlas-fade-3 {
-  opacity: clamp(0, calc((var(--s) - var(--f3s, 0)) * var(--f3k, 100)), 1);
-}
-
-/* the level we came from keeps a faint spatial memory */
-.atlas-out {
-  opacity: 0.07;
-}
-
-/* siblings of the selected node step back */
-.atlas-dim-sibling {
-  opacity: 0.32;
+@keyframes atlas-draw {
+  from {
+    stroke-dashoffset: var(--len, 600);
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
 }
 
 .atlas-node-body {

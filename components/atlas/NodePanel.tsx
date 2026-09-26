@@ -2,7 +2,7 @@
 
 import { ATLAS, ancestorsOf } from "@/content";
 import { masteryLabel } from "@/engine/mastery";
-import { PANEL_WIDTH } from "@/lib/atlas/levels";
+import { PANEL_WIDTH } from "@/lib/atlas/viewport";
 
 export function NodePanel({
   nodeId,
