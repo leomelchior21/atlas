@@ -73,6 +73,7 @@ function TreeNodeGlyphBase({
     return (
       <g {...common}>
         <circle r={radius + 22} fill="transparent" />
+        <circle className="atlas-focus-ring" r={radius * 1.85} />
         {selected || hovered ? (
           <circle
             r={radius * 1.7}
@@ -114,6 +115,7 @@ function TreeNodeGlyphBase({
   return (
     <g {...common}>
       <circle r={radius + 16} fill="transparent" />
+      <circle className="atlas-focus-ring" r={radius * 1.72} />
       {selected || hovered ? (
         <circle
           r={radius * 1.62}
@@ -127,11 +129,10 @@ function TreeNodeGlyphBase({
 
       {yearRelevant && !selected ? (
         <circle
-          className="year-pulse"
           r={radius * 1.42}
           fill="none"
           stroke="#ffffff"
-          strokeOpacity="0.24"
+          strokeOpacity="0.22"
           strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />

@@ -4,10 +4,9 @@ import { useMemo, useState } from "react";
 import { CONCEPTS } from "@/content/concepts";
 import { formatNumber, round } from "@/lib/format";
 import type { Point } from "@/lib/geometry";
-import { beginSvgDrag, handleSliderKeys } from "@/components/geometry/useSvgDrag";
 import { DimensionLabel, UnitGrid } from "@/components/geometry/primitives";
 import { ConceptShell, HintPanel, LivePanel } from "./ConceptShell";
-import { ChoiceTabs, EquationDisplay, StatLine, ValueSlider } from "./controls";
+import { ChoiceTabs, ControlBar, ControlGroup, EquationDisplay, StatLine, ValueSlider } from "./controls";
 
 const META = CONCEPTS["geo-area"];
 
@@ -17,6 +16,12 @@ const SHAPES: Array<{ id: ShapeId; label: string; formula: string }> = [
   { id: "retangulo", label: "RETÂNGULO", formula: "A = b × h" },
   { id: "triangulo", label: "TRIÂNGULO", formula: "A = (b × h) ÷ 2" },
   { id: "paralelogramo", label: "PARALELOGRAMO", formula: "A = b × h" },
+];
+
+const PRESETS: Array<{ id: string; label: string; shape: ShapeId; base: number; height: number }> = [
+  { id: "ret-8-5", label: "RETÂNGULO 8 × 5", shape: "retangulo", base: 8, height: 5 },
+  { id: "tri-10-6", label: "TRIÂNGULO 10 × 6", shape: "triangulo", base: 10, height: 6 },
+  { id: "par-7-4", label: "PARALELOGRAMO 7 × 4", shape: "paralelogramo", base: 7, height: 4 },
 ];
 
 export function AreaConcept({ onLeave }: { onLeave: () => void }) {
@@ -33,28 +38,18 @@ export function AreaConcept({ onLeave }: { onLeave: () => void }) {
       meta={META}
       journey={journey}
       onJourney={(index) => (index < 0 ? onLeave() : setJourney(index))}
-      equation={
-        <EquationDisplay
-          main={shapeInfo.formula}
-          live={
-            shape === "triangulo"
-              ? `(${formatNumber(base)} × ${formatNumber(height)}) ÷ 2 = ${formatNumber(round(area, 2))}`
-              : `${formatNumber(base)} × ${formatNumber(height)} = ${formatNumber(round(area, 2))}`
-          }
-        />
-      }
-      controls={
-        <>
-          <LivePanel title="FORMA EM ESTUDO">
+      toolbar={
+        <ControlBar>
+          <ControlGroup label="FORMA EM ESTUDO">
             <ChoiceTabs
               options={SHAPES.map((item) => ({ id: item.id, label: item.label }))}
               value={shape}
               onChange={setShape}
             />
-          </LivePanel>
+          </ControlGroup>
 
-          <LivePanel title="DIMENSÕES">
-            <div className="flex flex-col gap-3 pt-1">
+          <ControlGroup label="AJUSTE AS DIMENSÕES" wide>
+            <div className="flex flex-col gap-3">
               <ValueSlider
                 symbol="b"
                 value={base}
@@ -74,10 +69,39 @@ export function AreaConcept({ onLeave }: { onLeave: () => void }) {
                 display={formatNumber(height)}
               />
             </div>
-          </LivePanel>
+          </ControlGroup>
 
-          <span className="block h-px w-full bg-white/12" />
-
+          <ChoiceTabs
+            label="OU VEJA UM EXEMPLO"
+            options={PRESETS.map((preset) => ({ id: preset.id, label: preset.label }))}
+            value={
+              PRESETS.find(
+                (preset) =>
+                  preset.shape === shape && preset.base === base && preset.height === height,
+              )?.id ?? ""
+            }
+            onChange={(id) => {
+              const preset = PRESETS.find((entry) => entry.id === id);
+              if (!preset) return;
+              setShape(preset.shape);
+              setBase(preset.base);
+              setHeight(preset.height);
+            }}
+          />
+        </ControlBar>
+      }
+      equation={
+        <EquationDisplay
+          main={shapeInfo.formula}
+          live={
+            shape === "triangulo"
+              ? `(${formatNumber(base)} × ${formatNumber(height)}) ÷ 2 = ${formatNumber(round(area, 2))}`
+              : `${formatNumber(base)} × ${formatNumber(height)} = ${formatNumber(round(area, 2))}`
+          }
+        />
+      }
+      controls={
+        <>
           <LivePanel title="CONTAGEM">
             <StatLine label="UNIDADES COBERTAS" value={formatNumber(round(area, 2))} />
             <StatLine label="UNIDADES VAZIAS" value={formatNumber(round(base * height - area, 2))} />
@@ -89,13 +113,7 @@ export function AreaConcept({ onLeave }: { onLeave: () => void }) {
       }
     >
       {journey === 0 ? (
-        <AreaScene
-          shape={shape}
-          base={base}
-          height={height}
-          setBase={(value) => setBase(Math.round(value))}
-          setHeight={(value) => setHeight(Math.round(value))}
-        />
+        <AreaScene shape={shape} base={base} height={height} />
       ) : journey === 1 ? (
         <DerivationScene shape={shape} base={base} height={height} />
       ) : journey === 2 ? (
@@ -132,41 +150,11 @@ function shapePoints(shape: ShapeId, base: number, height: number): Point[] {
   ];
 }
 
-function AreaScene({
-  shape,
-  base,
-  height,
-  setBase,
-  setHeight,
-}: {
-  shape: ShapeId;
-  base: number;
-  height: number;
-  setBase: (value: number) => void;
-  setHeight: (value: number) => void;
-}) {
-  const [dragging, setDragging] = useState<null | "base" | "height">(null);
+function AreaScene({ shape, base, height }: { shape: ShapeId; base: number; height: number }) {
   const points = useMemo(() => shapePoints(shape, base, height), [shape, base, height]);
   const skew = shape === "paralelogramo" ? Math.min(2, base * 0.3) : 0;
   const pad = 2;
   const viewBox = `${-pad} ${-pad} ${base + pad * 2 + skew} ${height + pad * 2}`;
-
-  const dragBase = (event: React.PointerEvent) => {
-    setDragging("base");
-    beginSvgDrag(
-      event,
-      (point) => setBase(Math.max(2, Math.min(10, Math.round(point.x)))),
-      () => setDragging(null),
-    );
-  };
-  const dragHeight = (event: React.PointerEvent) => {
-    setDragging("height");
-    beginSvgDrag(
-      event,
-      (point) => setHeight(Math.max(2, Math.min(10, Math.round(point.y)))),
-      () => setDragging(null),
-    );
-  };
 
   const handleX = { x: base, y: 0 };
   const handleY = { x: 0, y: height };
@@ -245,48 +233,18 @@ function AreaScene({
           A
         </text>
 
-        <g
-          onPointerDown={dragBase}
-          className="cursor-grab"
-          role="slider"
-          aria-label="Arraste ou use as setas para mudar a base"
-          aria-valuetext={`base = ${base}`}
-          tabIndex={0}
-          onKeyDown={(event) =>
-            handleSliderKeys(event, {
-              onDelta: (dx) => setBase(Math.max(2, Math.min(10, base + Math.round(dx / 4)))),
-              step: 4,
-              fastStep: 20,
-            })
-          }
-        >
-          <circle cx={handleX.x} cy={handleX.y} r={1.6} fill="transparent" />
-          <circle cx={handleX.x} cy={handleX.y} r={dragging === "base" ? 0.52 : 0.4} fill="#000" stroke="#fff" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <g>
+          <circle cx={handleX.x} cy={handleX.y} r={0.4} fill="#000" stroke="#fff" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
           <circle cx={handleX.x} cy={handleX.y} r={0.18} fill="#fff" />
         </g>
-        <g
-          onPointerDown={dragHeight}
-          className="cursor-grab"
-          role="slider"
-          aria-label="Arraste ou use as setas para mudar a altura"
-          aria-valuetext={`altura = ${height}`}
-          tabIndex={0}
-          onKeyDown={(event) =>
-            handleSliderKeys(event, {
-              onDelta: (dx, dy) => setHeight(Math.max(2, Math.min(10, height + Math.round((dx + dy) / 4)))),
-              step: 4,
-              fastStep: 20,
-            })
-          }
-        >
-          <circle cx={handleY.x} cy={handleY.y} r={1.6} fill="transparent" />
-          <circle cx={handleY.x} cy={handleY.y} r={dragging === "height" ? 0.52 : 0.4} fill="#000" stroke="#fff" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <g>
+          <circle cx={handleY.x} cy={handleY.y} r={0.4} fill="#000" stroke="#fff" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
           <circle cx={handleY.x} cy={handleY.y} r={0.18} fill="#fff" />
         </g>
       </svg>
 
       <p className="pt-2 text-center text-[10px] tracking-[0.28em] text-white/30">
-        CONTE OS QUADRADOS · ARRASTE OS PONTOS
+        CONTE OS QUADRADOS · AJUSTE B E H NOS CONTROLES ACIMA
       </p>
     </div>
   );

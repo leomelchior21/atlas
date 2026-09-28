@@ -144,3 +144,32 @@ export function ChoiceTabs<T extends string>({
 export function ToolBar({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-2">{children}</div>;
 }
+
+/**
+ * The single control surface of a concept. Every experience is adjusted here,
+ * with sliders and option buttons, so the interaction never changes shape.
+ */
+export function ControlBar({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+      {children}
+    </div>
+  );
+}
+
+export function ControlGroup({
+  label,
+  children,
+  wide,
+}: {
+  label?: string;
+  children: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`flex flex-col gap-2.5 ${wide ? "w-full lg:max-w-[460px]" : ""}`}>
+      {label ? <p className="micro">{label}</p> : null}
+      {children}
+    </div>
+  );
+}

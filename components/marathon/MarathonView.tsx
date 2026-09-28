@@ -13,6 +13,50 @@ import {
 } from "@/engine/problems/types";
 import { useAtlas } from "@/store/atlas-store";
 
+/**
+ * Difficulty is not a different question bank: it is the amount of support the
+ * screen offers. Leve shows everything, normal hides support behind a button,
+ * avançada starts with only the statement and reveals answers on request.
+ */
+const SUPPORT_MODE: Record<DifficultyId, string> = {
+  leve: "FÓRMULA · DICA · ALTERNATIVAS",
+  normal: "ALTERNATIVAS · APOIO SOB DEMANDA",
+  avancada: "SÓ O ENUNCIADO · RESPONDA QUANDO QUISER",
+};
+
+/** every family can present a formula in the supported modes */
+const FAMILY_FORMULAS: Record<string, string> = {
+  "find-hypotenuse": "a² + b² = c²",
+  "find-leg": "x² = c² − b²",
+  triples: "a² + b² = c²",
+  decimals: "a² + b² = c²",
+  diagram: "a² + b² = c²",
+  context: "a² + b² = c²",
+  "right-or-not": "a² + b² = c² ?",
+  "multi-step": "a² + b² = c²",
+  classify: "agudo · reto · obtuso · raso",
+  complement: "x + y = 90°",
+  supplement: "x + y = 180°",
+  adjacent: "x + y = 180°",
+  bisector: "x = α ÷ 2",
+  rectangle: "A = b × h",
+  triangle: "A = (b × h) ÷ 2",
+  parallelogram: "A = b × h",
+  trapezoid: "A = (B + b) × h ÷ 2",
+  "missing-dimension": "h = A ÷ b",
+  composite: "A = A₁ + A₂ · P = soma dos lados",
+  square: "P = 4 × lado",
+  polygon: "P = soma dos lados",
+  "missing-side": "P = soma dos lados",
+  "classify-sides": "equilátero · isósceles · escaleno",
+  "angle-sum": "α + β + γ = 180°",
+  "classify-angles": "compare o maior ângulo com 90°",
+  isosceles: "base = (180° − vértice) ÷ 2",
+  exterior: "externo = soma dos internos não adjacentes",
+  inequality: "a + b > c",
+  ratio: "some as partes da razão e divida 180°",
+};
+
 const FAMILY_HINTS: Record<string, string> = {
   "find-hypotenuse": "A hipotenusa é o maior lado e fica oposta ao ângulo reto. Use c² = a² + b².",
   "find-leg": "Para achar um cateto, isole-o: x² = c² − a².",
@@ -57,7 +101,7 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
   const [failure, setFailure] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [count, setCount] = useState(1);
-  const [showHint, setShowHint] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(difficulty === "leve");
   const [revealed, setRevealed] = useState(false);
   const lastSeed = useRef<string | null>(null);
   const nextRef = useRef<() => void>(() => {});
@@ -82,7 +126,7 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
     actions.rememberSignature(candidate);
     setProblem(candidate);
     setSelected(null);
-    setShowHint(false);
+    setSupportOpen(difficulty === "leve");
     setRevealed(false);
     setFailure(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,6 +160,9 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
   };
 
   const advanced = difficulty === "avancada";
+  const supportVisible = difficulty === "leve" || supportOpen;
+  const formula = problem?.formula ?? (problem ? FAMILY_FORMULAS[problem.familyId] : undefined);
+  const formulaVisible = Boolean(formula) && !advanced && supportVisible;
   const alternativesVisible = !advanced || revealed;
   const needsDiagram =
     !advanced ||
@@ -148,25 +195,30 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {DIFFICULTIES.map((item) => {
-            const active = difficulty === item;
-            return (
-              <button
-                key={item}
-                type="button"
-                onClick={() => actions.setDifficulty(item as DifficultyId)}
-                aria-pressed={active}
-                className={`min-h-[38px] rounded-full border px-5 text-[11px] tracking-[0.2em] transition-colors ${
-                  active
-                    ? "border-white bg-white text-black"
-                    : "border-white/28 text-white/65 hover:border-white/60 hover:text-white"
-                }`}
-              >
-                {DIFFICULTY_LABELS[item]}
-              </button>
-            );
-          })}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            {DIFFICULTIES.map((item) => {
+              const active = difficulty === item;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => actions.setDifficulty(item as DifficultyId)}
+                  aria-pressed={active}
+                  className={`min-h-[38px] rounded-full border px-5 text-[11px] tracking-[0.2em] transition-colors ${
+                    active
+                      ? "border-white bg-white text-black"
+                      : "border-white/28 text-white/65 hover:border-white/60 hover:text-white"
+                  }`}
+                >
+                  {DIFFICULTY_LABELS[item]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="hidden text-[9.5px] tracking-[0.22em] text-white/35 lg:block">
+            {SUPPORT_MODE[difficulty]}
+          </p>
         </div>
       </header>
 
@@ -192,25 +244,29 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
             {problem?.prompt ?? (failure ?? "Gerando questão…")}
           </h1>
 
-          {problem?.formula ? (
-            <p className="mt-6 font-display text-[15px] tracking-[0.04em] text-white/55">
-              {problem.formula}
-            </p>
-          ) : null}
-
           {showDiagram && advanced ? (
             <div className="mt-6 min-h-[200px] flex-1 lg:hidden">
               <ProblemDiagram spec={problem!.diagram} />
             </div>
           ) : null}
 
-          {showHint ? (
-            <div className="rise-in mt-7 max-w-[560px] border-l border-white/25 pl-4">
-              <p className="micro mb-2">DICA</p>
-              <p className="text-[13px] leading-relaxed text-white/60">
-                {FAMILY_HINTS[problem?.familyId ?? ""] ??
-                  "Releia o enunciado e identifique as grandezas conhecidas antes de calcular."}
-              </p>
+          {supportVisible && problem ? (
+            <div className="rise-in mt-7 flex max-w-[560px] flex-col gap-5 border-l border-white/25 pl-4">
+              {formulaVisible ? (
+                <div>
+                  <p className="micro mb-2">FÓRMULA</p>
+                  <p className="font-display text-[15px] tracking-[0.04em] text-white/70">
+                    {formula}
+                  </p>
+                </div>
+              ) : null}
+              <div>
+                <p className="micro mb-2">DICA</p>
+                <p className="text-[13px] leading-relaxed text-white/60">
+                  {FAMILY_HINTS[problem.familyId] ??
+                    "Releia o enunciado e identifique as grandezas conhecidas antes de calcular."}
+                </p>
+              </div>
             </div>
           ) : null}
         </div>
@@ -256,6 +312,15 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
                 VER NO CONCEITO →
               </button>
             ) : null}
+          </div>
+        ) : null}
+
+        {advanced && !alternativesVisible && problem ? (
+          <div className="flex max-w-[560px] flex-col gap-2 border border-white/12 bg-white/[0.02] px-5 py-4">
+            <p className="text-[10px] tracking-[0.28em] text-white/55">SEM APOIO</p>
+            <p className="text-[12.5px] leading-relaxed text-white/50">
+              Resolva no papel. Quando estiver pronto, toque em RESPONDER para ver as alternativas.
+            </p>
           </div>
         ) : null}
 
@@ -311,8 +376,11 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
-            onClick={() => setShowHint((value) => !value)}
-            className="flex min-h-[44px] items-center gap-3 text-[11px] tracking-[0.26em] text-white/55 transition-colors hover:text-white"
+            onClick={() => setSupportOpen((value) => !value)}
+            aria-pressed={supportVisible}
+            className={`flex min-h-[44px] items-center gap-3 text-[11px] tracking-[0.26em] transition-colors ${
+              supportVisible ? "text-white" : "text-white/55 hover:text-white"
+            }`}
           >
             <span
               aria-hidden="true"
@@ -320,13 +388,13 @@ export function MarathonView({ onExit }: { onExit: () => void }) {
             >
               ?
             </span>
-            DICA
+            APOIO
           </button>
 
           <div className="flex items-center gap-3">
             {advanced && !revealed && !answered ? (
-              <button type="button" onClick={() => setRevealed(true)} className="btn">
-                VER RESPOSTAS
+              <button type="button" onClick={() => setRevealed(true)} className="btn btn-solid">
+                RESPONDER
               </button>
             ) : null}
             <button

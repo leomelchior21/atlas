@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import { CONCEPTS } from "@/content/concepts";
 import { formatNumber, round } from "@/lib/format";
 import { classifyAngle, polar, type Point } from "@/lib/geometry";
-import { beginSvgDrag, handleSliderKeys } from "@/components/geometry/useSvgDrag";
 import { ConceptShell, HintPanel, LivePanel } from "./ConceptShell";
-import { ChoiceTabs, EquationDisplay, StatLine, ValueSlider } from "./controls";
+import { ChoiceTabs, ControlBar, ControlGroup, EquationDisplay, StatLine, ValueSlider } from "./controls";
 
 const META = CONCEPTS["geo-angles"];
 const RAY = 9;
@@ -18,6 +17,14 @@ const CLASSES = [
   { id: "raso", label: "RASO", range: "α = 180°" },
   { id: "côncavo", label: "CÔNCAVO", range: "180° < α < 360°" },
 ] as const;
+
+const PRESETS = [
+  { id: "45", label: "AGUDO 45°", value: 45 },
+  { id: "90", label: "RETO 90°", value: 90 },
+  { id: "135", label: "OBTUSO 135°", value: 135 },
+  { id: "180", label: "RASO 180°", value: 180 },
+  { id: "270", label: "CÔNCAVO 270°", value: 270 },
+];
 
 function classify(deg: number): string {
   const base = classifyAngle(deg, 0.75);
@@ -38,6 +45,31 @@ export function AnglesConcept({ onLeave }: { onLeave: () => void }) {
       meta={META}
       journey={journey}
       onJourney={(index) => (index < 0 ? onLeave() : setJourney(index))}
+      toolbar={
+        <ControlBar>
+          <ControlGroup label="AJUSTE A ABERTURA" wide>
+            <ValueSlider
+              symbol="α"
+              value={clamped}
+              min={3}
+              max={357}
+              step={0.5}
+              display={`${formatNumber(round(clamped, 1))}°`}
+              onChange={setAngle}
+            />
+          </ControlGroup>
+
+          <ChoiceTabs
+            label="OU VEJA CADA CLASSIFICAÇÃO"
+            options={PRESETS.map((preset) => ({ id: preset.id, label: preset.label }))}
+            value={PRESETS.find((preset) => preset.value === clamped)?.id ?? ""}
+            onChange={(id) => {
+              const preset = PRESETS.find((entry) => entry.id === id);
+              if (preset) setAngle(preset.value);
+            }}
+          />
+        </ControlBar>
+      }
       equation={
         <EquationDisplay
           main={`α = ${formatNumber(round(clamped, 1))}°`}
@@ -87,9 +119,9 @@ export function AnglesConcept({ onLeave }: { onLeave: () => void }) {
       }
     >
       {journey === 0 ? (
-        <AngleScene angle={clamped} setAngle={setAngle} klass={klass} />
+        <AngleScene angle={clamped} klass={klass} />
       ) : journey === 1 ? (
-        <LadderScene angle={clamped} setAngle={setAngle} klass={klass} />
+        <LadderScene angle={clamped} klass={klass} />
       ) : journey === 2 ? (
         <ExamplesScene />
       ) : (
@@ -107,16 +139,7 @@ function arcPath(radius: number, fromDeg: number, toDeg: number): string {
   return `M ${from.x} ${from.y} A ${radius} ${radius} 0 ${large} ${sweep} ${to.x} ${to.y}`;
 }
 
-function AngleScene({
-  angle,
-  setAngle,
-  klass,
-}: {
-  angle: number;
-  setAngle: (value: number) => void;
-  klass: string;
-}) {
-  const [dragging, setDragging] = useState(false);
+function AngleScene({ angle, klass }: { angle: number; klass: string }) {
   const movable: Point = useMemo(
     () => polar({ x: 0, y: 0 }, RAY, (angle * Math.PI) / 180),
     [angle],
@@ -210,37 +233,11 @@ function AngleScene({
           {formatNumber(round(angle, 1))}°
         </text>
 
-        <g
-          onPointerDown={(event) => {
-            setDragging(true);
-            beginSvgDrag(
-              event,
-              (point) => {
-                const deg = (Math.atan2(point.y, point.x) * 180) / Math.PI;
-                const normalized = deg < 0 ? deg + 360 : deg;
-                setAngle(Math.round(normalized * 2) / 2);
-              },
-              () => setDragging(false),
-            );
-          }}
-          className="cursor-grab"
-          role="slider"
-          aria-label="Arraste ou use as setas para girar a semirreta"
-          aria-valuetext={`${round(angle, 1)} graus`}
-          tabIndex={0}
-          onKeyDown={(event) =>
-            handleSliderKeys(event, {
-              onDelta: (dx) => setAngle(Math.max(3, Math.min(357, angle + dx * 2))),
-              step: 1,
-              fastStep: 5,
-            })
-          }
-        >
-          <circle cx={movable.x} cy={movable.y} r={1.4} fill="transparent" />
+        <g>
           <circle
             cx={movable.x}
             cy={movable.y}
-            r={dragging ? 0.62 : 0.5}
+            r={0.5}
             fill="#000000"
             stroke="#ffffff"
             strokeWidth="1.2"
@@ -251,21 +248,13 @@ function AngleScene({
       </svg>
 
       <p className="pt-2 text-center text-[10px] tracking-[0.28em] text-white/30">
-        ARRASTE A SEMIRRETA B
+        GIRE A SEMIRRETA B PELO CONTROLE ACIMA
       </p>
     </div>
   );
 }
 
-function LadderScene({
-  angle,
-  setAngle,
-  klass,
-}: {
-  angle: number;
-  setAngle: (value: number) => void;
-  klass: string;
-}) {
+function LadderScene({ angle, klass }: { angle: number; klass: string }) {
   const zones = [
     { from: 0, to: 90, id: "agudo" },
     { from: 90, to: 90.001, id: "reto" },
@@ -340,19 +329,6 @@ function LadderScene({
           </text>
         </g>
       </svg>
-
-      <div className="px-6">
-        <ValueSlider
-          symbol="α"
-          value={angle}
-          min={3}
-          max={357}
-          step={0.5}
-          display={`${formatNumber(round(angle, 1))}°`}
-          onChange={setAngle}
-          accent
-        />
-      </div>
 
       <p className="max-w-[520px] self-center text-center text-[12.5px] leading-relaxed text-white/45">
         Percorra a escala e observe o instante exato em que o ângulo muda de nome. 90° e 180° são

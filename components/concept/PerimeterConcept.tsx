@@ -9,74 +9,56 @@ import {
   polygonPerimeter,
   type Point,
 } from "@/lib/geometry";
-import { beginSvgDrag, handleSliderKeys } from "@/components/geometry/useSvgDrag";
 import { DimensionLabel } from "@/components/geometry/primitives";
 import { ConceptShell, HintPanel, LivePanel } from "./ConceptShell";
-import { ChoiceTabs, EquationDisplay, StatLine } from "./controls";
+import { ChoiceTabs, ControlBar, ControlGroup, EquationDisplay, StatLine, ValueSlider } from "./controls";
 
 const META = CONCEPTS["geo-perimeter"];
 
-interface Vertex {
-  id: string;
-  rest: Point;
-  limit: number;
-}
-
-const VERTICES: Vertex[] = [
-  { id: "v0", rest: { x: 0, y: 0 }, limit: 2.4 },
-  { id: "v1", rest: { x: 8, y: 0 }, limit: 2.4 },
-  { id: "v2", rest: { x: 8, y: 4.6 }, limit: 2.4 },
-  { id: "v3", rest: { x: 0, y: 4.6 }, limit: 2.4 },
-];
+const MIN_SIDE = 2;
+const MAX_SIDE = 10;
 
 const VARIANTS = [
-  {
-    id: "retangulo",
-    label: "RETÂNGULO",
-    points: [
+  { id: "retangulo", label: "RETÂNGULO" },
+  { id: "irregular", label: "IRREGULAR" },
+  { id: "triangulo", label: "TRIÂNGULO" },
+] as const;
+
+type VariantId = (typeof VARIANTS)[number]["id"];
+
+/** every figure is built from the same two controls: b and h */
+function shapePoints(variant: VariantId, b: number, h: number): Point[] {
+  if (variant === "irregular") {
+    return [
+      { x: b * 0.05, y: h * 0.26 },
+      { x: b * 0.58, y: 0 },
+      { x: b, y: h * 0.48 },
+      { x: b * 0.65, y: h },
+      { x: b * 0.15, y: h * 0.85 },
+    ];
+  }
+  if (variant === "triangulo") {
+    return [
       { x: 0, y: 0 },
-      { x: 8, y: 0 },
-      { x: 8, y: 4.6 },
-      { x: 0, y: 4.6 },
-    ],
-  },
-  {
-    id: "irregular",
-    label: "IRREGULAR",
-    points: [
-      { x: 0.4, y: 1.2 },
-      { x: 4.6, y: 0 },
-      { x: 8.2, y: 2.2 },
-      { x: 5.2, y: 5.2 },
-      { x: 1.2, y: 4.4 },
-    ],
-  },
-  {
-    id: "triangulo",
-    label: "TRIÂNGULO",
-    points: [
-      { x: 0, y: 0 },
-      { x: 8, y: 1.4 },
-      { x: 3, y: 5.6 },
-    ],
-  },
-];
+      { x: b, y: h * 0.24 },
+      { x: b * 0.38, y: h },
+    ];
+  }
+  return [
+    { x: 0, y: 0 },
+    { x: b, y: 0 },
+    { x: b, y: h },
+    { x: 0, y: h },
+  ];
+}
 
 export function PerimeterConcept({ onLeave }: { onLeave: () => void }) {
   const [journey, setJourney] = useState(0);
-  const [variant, setVariant] = useState("retangulo");
-  const [offsets, setOffsets] = useState<Record<string, Point>>({});
+  const [variant, setVariant] = useState<VariantId>("retangulo");
+  const [base, setBase] = useState(8);
+  const [height, setHeight] = useState(4.6);
 
-  const spec = VARIANTS.find((item) => item.id === variant)!;
-
-  const points = useMemo(
-    () =>
-      spec.points.map((point, index) => {
-        const offset = offsets[`${variant}-${index}`];
-        return offset ? { x: point.x + offset.x, y: point.y + offset.y } : point;
-      }),
-    [spec, offsets, variant],
-  );
+  const points = useMemo(() => shapePoints(variant, base, height), [variant, base, height]);
 
   const perimeter = polygonPerimeter(points);
   const area = polygonArea(points);
@@ -86,6 +68,40 @@ export function PerimeterConcept({ onLeave }: { onLeave: () => void }) {
       meta={META}
       journey={journey}
       onJourney={(index) => (index < 0 ? onLeave() : setJourney(index))}
+      toolbar={
+        <ControlBar>
+          <ControlGroup label="FIGURA">
+            <ChoiceTabs
+              options={VARIANTS.map((item) => ({ id: item.id, label: item.label }))}
+              value={variant}
+              onChange={setVariant}
+            />
+          </ControlGroup>
+
+          <ControlGroup label="AJUSTE O TAMANHO" wide>
+            <div className="flex flex-col gap-3">
+              <ValueSlider
+                symbol="b"
+                value={base}
+                min={MIN_SIDE}
+                max={MAX_SIDE}
+                step={0.2}
+                onChange={(value) => setBase(Math.round(value * 10) / 10)}
+                display={`${formatNumber(base)} cm`}
+              />
+              <ValueSlider
+                symbol="h"
+                value={height}
+                min={MIN_SIDE}
+                max={MAX_SIDE}
+                step={0.2}
+                onChange={(value) => setHeight(Math.round(value * 10) / 10)}
+                display={`${formatNumber(height)} cm`}
+              />
+            </div>
+          </ControlGroup>
+        </ControlBar>
+      }
       equation={
         <EquationDisplay
           main="P = soma dos lados"
@@ -94,14 +110,6 @@ export function PerimeterConcept({ onLeave }: { onLeave: () => void }) {
       }
       controls={
         <>
-          <LivePanel title="FIGURA">
-            <ChoiceTabs
-              options={VARIANTS.map((item) => ({ id: item.id, label: item.label }))}
-              value={variant}
-              onChange={(id) => setVariant(id)}
-            />
-          </LivePanel>
-
           <LivePanel title="LADOS">
             <div className="flex flex-col pt-1">
               {points.map((point, index) => {
@@ -122,13 +130,6 @@ export function PerimeterConcept({ onLeave }: { onLeave: () => void }) {
           <LivePanel title="CONTORNO × INTERIOR">
             <StatLine label="PERÍMETRO" value={`${formatNumber(round(perimeter, 2))} cm`} />
             <StatLine label="ÁREA (interna)" value={`${formatNumber(round(area, 2))} cm²`} />
-            <button
-              type="button"
-              onClick={() => setOffsets({})}
-              className="mt-3 w-fit text-[10px] tracking-[0.28em] text-white/40 transition-colors hover:text-white"
-            >
-              RESTAURAR FIGURA
-            </button>
           </LivePanel>
 
           <HintPanel title={META.hintTitle} text={META.hint} />
@@ -136,14 +137,7 @@ export function PerimeterConcept({ onLeave }: { onLeave: () => void }) {
       }
     >
       {journey === 0 ? (
-        <PerimeterScene
-          variant={variant}
-          points={points}
-          offsets={offsets}
-          setOffset={(index, offset) =>
-            setOffsets((current) => ({ ...current, [`${variant}-${index}`]: offset }))
-          }
-        />
+        <PerimeterScene variant={variant} points={points} />
       ) : journey === 1 ? (
         <WalkScene points={points} perimeter={perimeter} />
       ) : journey === 2 ? (
@@ -155,18 +149,7 @@ export function PerimeterConcept({ onLeave }: { onLeave: () => void }) {
   );
 }
 
-function PerimeterScene({
-  variant,
-  points,
-  offsets,
-  setOffset,
-}: {
-  variant: string;
-  points: Point[];
-  offsets: Record<string, Point>;
-  setOffset: (index: number, offset: Point) => void;
-}) {
-  const [dragging, setDragging] = useState<number | null>(null);
+function PerimeterScene({ variant, points }: { variant: VariantId; points: Point[] }) {
   const pad = 2;
   const bounds = points.reduce(
     (acc, point) => ({
@@ -252,76 +235,25 @@ function PerimeterScene({
           );
         })}
 
-        {points.map((point, index) => {
-          const rest = VARIANTS.find((item) => item.id === variant)!.points[index];
-          return (
-            <g
-              key={`handle-${variant}-${index}`}
-              className="cursor-grab"
-              role="slider"
-              aria-label={`Vértice ${index + 1}: arraste ou use as setas`}
-              aria-valuetext={`x ${round(points[index].x, 1)}, y ${round(points[index].y, 1)}`}
-              tabIndex={0}
-              onKeyDown={(event) =>
-                handleSliderKeys(event, {
-                  onDelta: (dx, dy) => {
-                    const limit = 2.4;
-                    const current = offsets[`${variant}-${index}`] ?? { x: 0, y: 0 };
-                    setOffset(index, {
-                      x: Math.max(-limit, Math.min(limit, current.x + dx * 0.25)),
-                      y: Math.max(-limit, Math.min(limit, current.y + dy * 0.25)),
-                    });
-                  },
-                  step: 1,
-                  fastStep: 4,
-                })
-              }
-              onPointerDown={(event) => {
-                setDragging(index);
-                beginSvgDrag(
-                  event,
-                  (svgPoint) => {
-                    const limit = 2.4;
-                    setOffset(index, {
-                      x: Math.max(-limit, Math.min(limit, svgPoint.x - rest.x)),
-                      y: Math.max(-limit, Math.min(limit, svgPoint.y - rest.y)),
-                    });
-                  },
-                  () => setDragging(null),
-                );
-              }}
-            >
-              <circle cx={point.x} cy={point.y} r={1} fill="transparent" />
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={dragging === index ? 0.36 : 0.28}
-                fill="#000000"
-                stroke="#ffffff"
-                strokeWidth="1.4"
-                vectorEffect="non-scaling-stroke"
-              />
-              <circle cx={point.x} cy={point.y} r={0.11} fill="#ffffff" />
-            </g>
-          );
-        })}
+        {points.map((point, index) => (
+          <g key={`vertex-${variant}-${index}`}>
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r={0.28}
+              fill="#000000"
+              stroke="#ffffff"
+              strokeWidth="1.4"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle cx={point.x} cy={point.y} r={0.11} fill="#ffffff" />
+          </g>
+        ))}
 
-        <text
-          x={(bounds.minX + bounds.maxX) / 2}
-          y={(bounds.minY + bounds.maxY) / 2}
-          textAnchor="middle"
-          dy="0.34em"
-          fill="#ffffff"
-          fillOpacity="0.28"
-          fontSize="0.62"
-          letterSpacing="0.26em"
-        >
-          INTERIOR
-        </text>
       </svg>
 
       <p className="pt-2 text-center text-[10px] tracking-[0.28em] text-white/30">
-        ARRASTE OS VÉRTICES · O CONTORNO É O PERÍMETRO
+        O CONTORNO É O PERÍMETRO · AJUSTE A FIGURA ACIMA
       </p>
     </div>
   );

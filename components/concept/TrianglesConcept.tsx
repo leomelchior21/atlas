@@ -9,25 +9,49 @@ import {
   classifyTriangleSides,
   degrees,
   distance,
+  radians,
   triangleArea,
   type Point,
 } from "@/lib/geometry";
-import { beginSvgDrag, handleSliderKeys } from "@/components/geometry/useSvgDrag";
 import { ConceptShell, HintPanel, LivePanel } from "./ConceptShell";
-import { ChoiceTabs, EquationDisplay, StatLine } from "./controls";
+import { ChoiceTabs, ControlBar, ControlGroup, EquationDisplay, StatLine, ValueSlider } from "./controls";
 
 const META = CONCEPTS["geo-triangles"];
 
-const HOME: Point[] = [
-  { x: 0.4, y: 5.6 },
-  { x: 9.6, y: 5.2 },
-  { x: 5.4, y: 0.4 },
+const MIN_ANGLE = 20;
+const MAX_ANGLE = 140;
+const ANGLE_SUM = 180;
+/** the largest side always measures 10 cm, so the figure never jumps scale */
+const LONGEST_SIDE = 10;
+
+const PRESETS = [
+  { id: "escaleno", label: "ESCALENO", alpha: 80, beta: 60 },
+  { id: "isosceles", label: "ISÓSCELES", alpha: 70, beta: 55 },
+  { id: "equilatero", label: "EQUILÁTERO", alpha: 60, beta: 60 },
+  { id: "retangulo", label: "RETÂNGULO", alpha: 90, beta: 50 },
+  { id: "obtusangulo", label: "OBTUSÂNGULO", alpha: 110, beta: 40 },
 ];
+
+/** builds the triangle from two angles, using the law of sines for the sides */
+function triangleFromAngles(alpha: number, beta: number): Point[] {
+  const gamma = ANGLE_SUM - alpha - beta;
+  const circumdiameter = LONGEST_SIDE / Math.sin(radians(Math.max(alpha, beta, gamma)));
+  const sideC = circumdiameter * Math.sin(radians(gamma));
+  const sideB = circumdiameter * Math.sin(radians(beta));
+  return [
+    { x: 0, y: 0 },
+    { x: sideC, y: 0 },
+    { x: sideB * Math.cos(radians(alpha)), y: sideB * Math.sin(radians(alpha)) },
+  ];
+}
 
 export function TrianglesConcept({ onLeave }: { onLeave: () => void }) {
   const [journey, setJourney] = useState(0);
-  const [points, setPoints] = useState<Point[]>(HOME);
-  const [dragging, setDragging] = useState<number | null>(null);
+  const [alpha, setAlpha] = useState(80);
+  const [beta, setBeta] = useState(60);
+
+  const gamma = ANGLE_SUM - alpha - beta;
+  const points = useMemo(() => triangleFromAngles(alpha, beta), [alpha, beta]);
 
   const sides = useMemo(
     () => [
@@ -49,36 +73,74 @@ export function TrianglesConcept({ onLeave }: { onLeave: () => void }) {
   const sum = angles[0] + angles[1] + angles[2];
   const area = triangleArea(points[0], points[1], points[2]);
   const sideClass = classifyTriangleSides(sides[0], sides[1], sides[2]);
+  const maxAngle = Math.max(...angles);
   const angleClass =
-    Math.max(...angles) > 90.6
-      ? "Obtusângulo"
-      : Math.abs(Math.max(...angles) - 90) <= 0.6
-        ? "Retângulo"
-        : "Acutângulo";
+    maxAngle > 90.6 ? "Obtusângulo" : Math.abs(maxAngle - 90) <= 0.6 ? "Retângulo" : "Acutângulo";
 
-  const update = (index: number, point: Point) => {
-    setPoints((current) => {
-      const next = [...current];
-      next[index] = {
-        x: Math.max(-0.4, Math.min(10.4, point.x)),
-        y: Math.max(-0.4, Math.min(6.8, point.y)),
-      };
-      if (triangleArea(next[0], next[1], next[2]) < 1.4) return current;
-      return next;
-    });
+  /* one control at a time: the other angle gives way so the sum stays 180° */
+  const setAngleAt = (vertex: 0 | 1, value: number) => {
+    const next = Math.max(MIN_ANGLE, Math.min(MAX_ANGLE, Math.round(value)));
+    if (vertex === 0) {
+      setAlpha(next);
+      if (next + beta > ANGLE_SUM - MIN_ANGLE) setBeta(ANGLE_SUM - MIN_ANGLE - next);
+    } else {
+      setBeta(next);
+      if (next + alpha > ANGLE_SUM - MIN_ANGLE) setAlpha(ANGLE_SUM - MIN_ANGLE - next);
+    }
   };
+
+  const presetId =
+    PRESETS.find((preset) => preset.alpha === alpha && preset.beta === beta)?.id ?? "";
 
   return (
     <ConceptShell
       meta={META}
       journey={journey}
-      onJourney={(index) => {
-        if (index < 0) {
-          onLeave();
-          return;
-        }
-        setJourney(index);
-      }}
+      onJourney={(index) => (index < 0 ? onLeave() : setJourney(index))}
+      toolbar={
+        <ControlBar>
+          <ControlGroup label="AJUSTE OS ÂNGULOS" wide>
+            <div className="flex flex-col gap-3">
+              <ValueSlider
+                symbol="α"
+                value={alpha}
+                min={MIN_ANGLE}
+                max={MAX_ANGLE}
+                step={1}
+                display={`${alpha}°`}
+                onChange={(value) => setAngleAt(0, value)}
+              />
+              <ValueSlider
+                symbol="β"
+                value={beta}
+                min={MIN_ANGLE}
+                max={MAX_ANGLE}
+                step={1}
+                display={`${beta}°`}
+                onChange={(value) => setAngleAt(1, value)}
+              />
+            </div>
+          </ControlGroup>
+
+          <ChoiceTabs
+            label="OU VEJA UM TIPO DE TRIÂNGULO"
+            options={PRESETS.map((preset) => ({ id: preset.id, label: preset.label }))}
+            value={presetId}
+            onChange={(id) => {
+              const preset = PRESETS.find((entry) => entry.id === id);
+              if (!preset) return;
+              setAlpha(preset.alpha);
+              setBeta(preset.beta);
+            }}
+          />
+
+          <ControlGroup label="TERCEIRO ÂNGULO (RESULTADO)">
+            <p className="font-display text-[26px] font-light tracking-[0.02em] text-white">
+              γ = {gamma}°
+            </p>
+          </ControlGroup>
+        </ControlBar>
+      }
       equation={
         <EquationDisplay
           main="α + β + γ = 180°"
@@ -123,15 +185,7 @@ export function TrianglesConcept({ onLeave }: { onLeave: () => void }) {
       }
     >
       {journey === 0 ? (
-        <TriangleScene
-          points={points}
-          angles={angles}
-          sides={sides}
-          dragging={dragging}
-          setDragging={setDragging}
-          onDrag={update}
-          onReset={() => setPoints(HOME)}
-        />
+        <TriangleScene points={points} angles={angles} sides={sides} />
       ) : journey === 1 ? (
         <SumScene points={points} angles={angles} />
       ) : journey === 2 ? (
@@ -149,18 +203,10 @@ function TriangleScene({
   points,
   angles,
   sides,
-  dragging,
-  setDragging,
-  onDrag,
-  onReset,
 }: {
   points: Point[];
   angles: number[];
   sides: number[];
-  dragging: number | null;
-  setDragging: (index: number | null) => void;
-  onDrag: (index: number, point: Point) => void;
-  onReset: () => void;
 }) {
   const box = boundingBox(points);
   const width = Math.max(1, box.maxX - box.minX);
@@ -187,6 +233,18 @@ function TriangleScene({
       x: mid.x + (away.x / length) * offset,
       y: mid.y + (away.y / length) * offset,
       value: sides[index],
+    };
+  };
+
+  /* angle labels sit outside the figure, opposite the centroid */
+  const angleLabel = (index: number) => {
+    const point = points[index];
+    const away = { x: point.x - centroid.x, y: point.y - centroid.y };
+    const length = Math.max(0.001, Math.hypot(away.x, away.y));
+    const offset = unit * 10;
+    return {
+      x: point.x + (away.x / length) * offset,
+      y: point.y + (away.y / length) * offset,
     };
   };
 
@@ -221,10 +279,7 @@ function TriangleScene({
             {points.map((point, index) => {
               const next = points[(index + 1) % 3];
               const prev = points[(index + 2) % 3];
-              const radius = Math.min(
-                distance(point, next),
-                distance(point, prev),
-              ) * 0.24;
+              const radius = Math.min(distance(point, next), distance(point, prev)) * 0.24;
               return (
                 <path
                   key={`arc-${index}`}
@@ -242,20 +297,17 @@ function TriangleScene({
 
           {/* labels stay in figure units derived from the viewBox, never absolute */}
           <g id="screen-labels">
-            {points.map((point, index) => {
-              const next = points[(index + 1) % 3];
-              const prev = points[(index + 2) % 3];
-              const radius = Math.min(distance(point, next), distance(point, prev)) * 0.24;
-              const bisector = bisectorPoint(point, next, prev, radius * 1.75);
+            {points.map((_, index) => {
+              const label = angleLabel(index);
               return (
                 <text
                   key={`angle-${index}`}
-                  x={bisector.x}
-                  y={bisector.y}
+                  x={label.x}
+                  y={label.y}
                   textAnchor="middle"
                   dy="0.34em"
                   fill="#ffffff"
-                  fillOpacity="0.9"
+                  fillOpacity="0.92"
                   fontSize={unit * 13}
                   letterSpacing={unit * 0.2}
                 >
@@ -274,8 +326,8 @@ function TriangleScene({
                   textAnchor="middle"
                   dy="0.34em"
                   fill="#ffffff"
-                  fillOpacity="0.62"
-                  fontSize={unit * 12}
+                  fillOpacity="0.58"
+                  fontSize={unit * 11.5}
                 >
                   {formatNumber(round(label.value, 2))}
                 </text>
@@ -283,60 +335,26 @@ function TriangleScene({
             })}
           </g>
 
-          {/* interaction */}
-          <g id="interaction-handles">
+          {/* vertices: read-only, the angles come from the controls above */}
+          <g id="vertices">
             {points.map((point, index) => (
-              <g
-                key={`handle-${index}`}
-                className="cursor-grab"
-                role="slider"
-                aria-label={`Vértice ${index + 1}: arraste ou use as setas`}
-                aria-valuetext={`x ${point.x.toFixed(1)}, y ${point.y.toFixed(1)}`}
-                tabIndex={0}
-                onKeyDown={(event) =>
-                  handleSliderKeys(event, {
-                    onDelta: (dx, dy) =>
-                      onDrag(index, { x: point.x + dx * 0.2, y: point.y + dy * 0.2 }),
-                    step: 1,
-                    fastStep: 5,
-                  })
-                }
-                onPointerDown={(event) => {
-                  setDragging(index);
-                  beginSvgDrag(
-                    event,
-                    (svgPoint) => onDrag(index, svgPoint),
-                    () => setDragging(null),
-                  );
-                }}
-              >
-                <circle cx={point.x} cy={point.y} r={unit * 5} fill="transparent" />
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={dragging === index ? unit * 1.5 : unit * 1.1}
-                  fill="#000000"
-                  stroke="#ffffff"
-                  strokeWidth="1.3"
-                  vectorEffect="non-scaling-stroke"
-                />
-                <circle cx={point.x} cy={point.y} r={unit * 0.4} fill="#ffffff" />
-              </g>
+              <circle
+                key={`vertex-${index}`}
+                cx={point.x}
+                cy={point.y}
+                r={unit * 1.1}
+                fill="#000000"
+                stroke="#ffffff"
+                strokeWidth="1.3"
+                vectorEffect="non-scaling-stroke"
+              />
             ))}
           </g>
         </svg>
-
-        <button
-          type="button"
-          onClick={onReset}
-          className="absolute bottom-1 right-1 text-[10px] tracking-[0.26em] text-white/35 transition-colors hover:text-white"
-        >
-          RESTAURAR
-        </button>
       </div>
 
       <p className="pt-3 text-center text-[10px] tracking-[0.26em] text-white/30">
-        ARRASTE OS VÉRTICES · A SOMA DOS ÂNGULOS NÃO MUDA
+        AJUSTE OS ÂNGULOS NOS CONTROLES ACIMA · A SOMA NÃO MUDA
       </p>
     </div>
   );
@@ -476,20 +494,34 @@ function SumScene({ points, angles }: { points: Point[]; angles: number[] }) {
 
 const EXAMPLES = [
   {
-    prompt: "Dois ângulos de um triângulo medem 65° e 48°. Qual é o terceiro ângulo?",
-    steps: ["α + 65° + 48° = 180°", "α = 180° − 113°", "α = 67°"],
+    id: "escaleno",
+    label: "ESCALENO",
+    prompt: "Um triângulo escaleno tem os três lados e os três ângulos diferentes entre si.",
+    steps: ["lados todos diferentes", "ângulos todos diferentes", "exemplo: 80°, 60° e 40°"],
   },
   {
-    prompt: "Um triângulo isósceles tem ângulo do vértice de 40°. Quanto mede cada ângulo da base?",
-    steps: ["180° − 40° = 140°", "140° ÷ 2 = 70°"],
+    id: "isosceles",
+    label: "ISÓSCELES",
+    prompt: "Um triângulo isósceles tem dois lados iguais e, por isso, dois ângulos iguais.",
+    steps: ["dois lados congruentes", "ângulos da base iguais", "exemplo: 70°, 55° e 55°"],
   },
   {
-    prompt: "Um triângulo tem lados 7 cm, 7 cm e 10 cm. Como ele é classificado?",
-    steps: ["dois lados iguais", "isósceles"],
+    id: "equilatero",
+    label: "EQUILÁTERO",
+    prompt: "Um triângulo equilátero tem os três lados iguais e os três ângulos iguais.",
+    steps: ["três lados congruentes", "três ângulos de 60°", "60° + 60° + 60° = 180°"],
   },
   {
-    prompt: "É possível um triângulo com lados 4 cm, 5 cm e 10 cm?",
-    steps: ["4 + 5 = 9 < 10", "não é possível: a soma de dois lados deve superar o terceiro"],
+    id: "retangulo",
+    label: "RETÂNGULO",
+    prompt: "Um triângulo retângulo tem um ângulo reto de 90°.",
+    steps: ["um ângulo de 90°", "os outros dois somam 90°", "exemplo: 90°, 50° e 40°"],
+  },
+  {
+    id: "obtusangulo",
+    label: "OBTUSÂNGULO",
+    prompt: "Um triângulo obtusângulo tem um ângulo maior que 90°.",
+    steps: ["um ângulo obtuso", "os outros dois são agudos", "exemplo: 110°, 40° e 30°"],
   },
 ];
 

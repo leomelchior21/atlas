@@ -7,6 +7,7 @@ export function ConceptShell({
   meta,
   journey,
   onJourney,
+  toolbar,
   equation,
   controls,
   extraLeft,
@@ -16,6 +17,7 @@ export function ConceptShell({
   meta: ConceptDefinition;
   journey: number;
   onJourney: (index: number) => void;
+  toolbar?: ReactNode;
   equation?: ReactNode;
   controls: ReactNode;
   extraLeft?: ReactNode;
@@ -24,9 +26,13 @@ export function ConceptShell({
 }) {
   return (
     <div className="viewport-fit flex flex-col bg-black">
+      {toolbar ? (
+        <div className="shrink-0 border-b border-white/8 px-7 pb-4 pt-3.5">{toolbar}</div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1 flex-col gap-6 px-7 pb-2 pt-4 lg:flex-row lg:gap-8">
         {/* left column */}
-        <div className="flex w-full shrink-0 flex-col lg:w-[26%] lg:min-w-[292px] lg:max-w-[372px]">
+        <div className="scroll-thin flex w-full shrink-0 flex-col lg:min-h-0 lg:w-[26%] lg:min-w-[292px] lg:max-w-[372px] lg:overflow-y-auto lg:pr-1">
           <button
             type="button"
             onClick={() => onJourney(-1)}
@@ -81,7 +87,7 @@ export function ConceptShell({
         <div className="relative min-h-[320px] flex-1 lg:min-h-0">{children}</div>
 
         {/* right column */}
-        <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[26%] lg:min-w-[272px] lg:max-w-[372px]">
+        <div className="scroll-thin flex w-full shrink-0 flex-col gap-6 lg:min-h-0 lg:w-[26%] lg:min-w-[272px] lg:max-w-[372px] lg:overflow-y-auto lg:pr-1">
           {controls}
         </div>
       </div>

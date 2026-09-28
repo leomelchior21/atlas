@@ -64,7 +64,7 @@ function buildRectangle(ctx: GenerateContext): ProblemDraft | null {
       labelWidth: `${formatNumber(b)} cm`,
       labelHeight: `${formatNumber(h)} cm`,
     },
-    formula: ctx.difficulty === "leve" ? "P = 2 × (b + h)" : undefined,
+    formula: "P = 2 × (b + h)",
     answerValue: perimeter,
     answerDisplay: `${formatNumber(perimeter)} cm`,
     unit: "cm",

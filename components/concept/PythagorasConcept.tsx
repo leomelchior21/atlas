@@ -5,12 +5,10 @@ import { CONCEPTS } from "@/content/concepts";
 import { formatNumber, isInteger, round } from "@/lib/format";
 import {
   boundingBox,
-  missingLeg,
   pythagoreanHypotenuse,
   squareOnSegment,
   type Point,
 } from "@/lib/geometry";
-import { beginSvgDrag, handleSliderKeys } from "@/components/geometry/useSvgDrag";
 import {
   DimensionLabel,
   RightAngleMarker,
@@ -18,11 +16,18 @@ import {
   UnitGrid,
 } from "@/components/geometry/primitives";
 import { ConceptShell, HintPanel, LivePanel } from "./ConceptShell";
-import { EquationDisplay, ValueRows, ValueSlider } from "./controls";
+import { ChoiceTabs, ControlBar, ControlGroup, EquationDisplay, ValueRows, ValueSlider } from "./controls";
 
 const META = CONCEPTS["geo-pythagoras"];
 const MIN_LEG = 1.5;
 const MAX_LEG = 12;
+
+const EXAMPLES = [
+  { id: "3-4-5", a: 3, b: 4, label: "3 · 4 · 5" },
+  { id: "6-8-10", a: 6, b: 8, label: "6 · 8 · 10" },
+  { id: "5-12-13", a: 5, b: 12, label: "5 · 12 · 13" },
+  { id: "9-12-15", a: 9, b: 12, label: "9 · 12 · 15" },
+];
 
 export function PythagorasConcept({ onLeave }: { onLeave: () => void }) {
   const [journey, setJourney] = useState(0);
@@ -36,12 +41,8 @@ export function PythagorasConcept({ onLeave }: { onLeave: () => void }) {
     setA(roundTo(Math.max(MIN_LEG, Math.min(MAX_LEG, value))));
   const handleB = (value: number) =>
     setB(roundTo(Math.max(MIN_LEG, Math.min(MAX_LEG, value))));
-  const handleC = (value: number) => {
-    const clamped = Math.max(MIN_LEG + 0.5, Math.min(MAX_LEG * 1.42, value));
-    const nextB = missingLeg(clamped, a);
-    if (!Number.isFinite(nextB) || nextB < MIN_LEG || nextB > MAX_LEG) return;
-    setB(roundTo(nextB));
-  };
+
+  const presetId = EXAMPLES.find((example) => example.a === a && example.b === b)?.id ?? "";
 
   const rows = [
     { left: "a²", middle: `${formatNumber(a)}²`, right: formatNumber(round(a * a, 4)) },
@@ -79,25 +80,44 @@ export function PythagorasConcept({ onLeave }: { onLeave: () => void }) {
           )}`}
         />
       }
-      controls={
-        <>
-          <LivePanel title="AJUSTE OS LADOS">
-            <div className="flex flex-col gap-3 pt-2">
-              <ValueSlider symbol="a" value={a} min={MIN_LEG} max={MAX_LEG} onChange={handleA} />
-              <ValueSlider symbol="b" value={b} min={MIN_LEG} max={MAX_LEG} onChange={handleB} />
+      toolbar={
+        <ControlBar>
+          <ControlGroup label="AJUSTE OS LADOS" wide>
+            <div className="flex flex-col gap-3">
               <ValueSlider
-                symbol="c"
-                value={round(c, 1)}
-                min={MIN_LEG + 0.5}
-                max={MAX_LEG * 1.42}
-                onChange={handleC}
-                accent
+                symbol="a"
+                value={a}
+                min={MIN_LEG}
+                max={MAX_LEG}
+                onChange={handleA}
+                display={formatNumber(a)}
+              />
+              <ValueSlider
+                symbol="b"
+                value={b}
+                min={MIN_LEG}
+                max={MAX_LEG}
+                onChange={handleB}
+                display={formatNumber(b)}
               />
             </div>
-          </LivePanel>
+          </ControlGroup>
 
-          <span className="block h-px w-full bg-white/12" />
-
+          <ChoiceTabs
+            label="OU ESCOLHA UM TERNO PITAGÓRICO"
+            options={EXAMPLES.map((example) => ({ id: example.id, label: example.label }))}
+            value={presetId}
+            onChange={(id) => {
+              const example = EXAMPLES.find((entry) => entry.id === id);
+              if (!example) return;
+              setA(example.a);
+              setB(example.b);
+            }}
+          />
+        </ControlBar>
+      }
+      controls={
+        <>
           <LivePanel title="A RELAÇÃO, AGORA">
             <ValueRows rows={rows} />
             <p className="mt-3 text-[11px] leading-relaxed text-white/40">
@@ -107,6 +127,8 @@ export function PythagorasConcept({ onLeave }: { onLeave: () => void }) {
               A igualdade nunca deixa de valer.
             </p>
           </LivePanel>
+
+          <span className="block h-px w-full bg-white/12" />
 
           <HintPanel title={META.hintTitle} text={META.hint} />
         </>
@@ -122,13 +144,15 @@ export function PythagorasConcept({ onLeave }: { onLeave: () => void }) {
       }
     >
       {journey === 0 ? (
-        <ExploreScene a={a} b={b} setA={handleA} setB={handleB} />
+        <ExploreScene a={a} b={b} />
       ) : journey === 1 ? (
         <ProofScene a={a} b={b} />
       ) : journey === 2 ? (
         <ExamplesScene
-          setA={(value) => setA(value)}
-          setB={(value) => setB(value)}
+          a={a}
+          b={b}
+          setA={handleA}
+          setB={handleB}
           onExplore={() => setJourney(0)}
         />
       ) : (
@@ -140,18 +164,7 @@ export function PythagorasConcept({ onLeave }: { onLeave: () => void }) {
 
 /* ------------------------------------------------------------- explore */
 
-function ExploreScene({
-  a,
-  b,
-  setA,
-  setB,
-}: {
-  a: number;
-  b: number;
-  setA: (value: number) => void;
-  setB: (value: number) => void;
-}) {
-  const [dragging, setDragging] = useState<null | "a" | "b">(null);
+function ExploreScene({ a, b }: { a: number; b: number }) {
   const [spanLock, setSpanLock] = useState(14);
   const c = pythagoreanHypotenuse(a, b);
 
@@ -187,23 +200,6 @@ function ExploreScene({
     y: (geometry.A.y + geometry.B.y) / 2,
   };
   const inward = { x: -a / c, y: b / c };
-
-  const dragA = (event: React.PointerEvent) => {
-    setDragging("a");
-    beginSvgDrag(
-      event,
-      (point) => setA(Math.max(MIN_LEG, Math.min(MAX_LEG, -point.y))),
-      () => setDragging(null),
-    );
-  };
-  const dragB = (event: React.PointerEvent) => {
-    setDragging("b");
-    beginSvgDrag(
-      event,
-      (point) => setB(Math.max(MIN_LEG, Math.min(MAX_LEG, point.x))),
-      () => setDragging(null),
-    );
-  };
 
   const toPoints = (points: Point[]) => points.map((p) => `${p.x},${p.y}`).join(" ");
 
@@ -382,69 +378,13 @@ function ExploreScene({
           <Segment a={geometry.V} b={geometry.B} opacity={0.95} width={1.3} />
           <Segment a={geometry.A} b={geometry.B} opacity={1} width={1.5} />
         </g>
-
-        <Handle
-          point={geometry.A}
-          active={dragging === "a"}
-          onPointerDown={dragA}
-          onDelta={(_dx, dy) => setA(a - dy * 0.25)}
-          ariaLabel="Arraste ou use as setas para mudar o cateto a"
-          valueText={`a = ${a}`}
-        />
-        <Handle
-          point={geometry.B}
-          active={dragging === "b"}
-          onPointerDown={dragB}
-          onDelta={(dx) => setB(b + dx * 0.25)}
-          ariaLabel="Arraste ou use as setas para mudar o cateto b"
-          valueText={`b = ${b}`}
-        />
+        <circle cx={geometry.V.x} cy={geometry.V.y} r={unit * 0.5} fill="#ffffff" />
       </svg>
 
       <p className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] tracking-[0.28em] text-white/30">
-        ARRASTE OS PONTOS
+        AJUSTE OS VALORES DE A E B NOS CONTROLES ACIMA
       </p>
     </div>
-  );
-}
-
-function Handle({
-  point,
-  active,
-  onPointerDown,
-  onDelta,
-  ariaLabel,
-  valueText,
-}: {
-  point: Point;
-  active: boolean;
-  onPointerDown: (event: React.PointerEvent) => void;
-  onDelta: (dx: number, dy: number) => void;
-  ariaLabel: string;
-  valueText: string;
-}) {
-  return (
-    <g
-      onPointerDown={onPointerDown}
-      className="cursor-grab"
-      role="slider"
-      aria-label={ariaLabel}
-      aria-valuetext={valueText}
-      tabIndex={0}
-      onKeyDown={(event) => handleSliderKeys(event, { onDelta, step: 1, fastStep: 8 })}
-    >
-      <circle cx={point.x} cy={point.y} r={5} fill="transparent" />
-      <circle
-        cx={point.x}
-        cy={point.y}
-        r={active ? 4 : 3}
-        fill="#000000"
-        stroke="#ffffff"
-        strokeWidth="1.4"
-        vectorEffect="non-scaling-stroke"
-      />
-      <circle cx={point.x} cy={point.y} r={active ? 1.6 : 1.1} fill="#ffffff" />
-    </g>
   );
 }
 
@@ -668,25 +608,30 @@ function ProofScene({ a, b }: { a: number; b: number }) {
 
 /* ------------------------------------------------------------ examples */
 
-const EXAMPLES = [
-  { a: 3, b: 4, label: "Terno 3-4-5" },
-  { a: 6, b: 8, label: "Terno 6-8-10" },
-  { a: 5, b: 12, label: "Terno 5-12-13" },
-  { a: 9, b: 12, label: "Terno 9-12-15" },
-];
-
 function ExamplesScene({
+  a,
+  b,
   setA,
   setB,
   onExplore,
 }: {
+  a: number;
+  b: number;
   setA: (value: number) => void;
   setB: (value: number) => void;
   onExplore: () => void;
 }) {
-  const [index, setIndex] = useState(0);
-  const example = EXAMPLES[index % EXAMPLES.length];
+  const example = { a, b, label: `Catetos ${formatNumber(a)} e ${formatNumber(b)}` };
   const c = pythagoreanHypotenuse(example.a, example.b);
+  const index = Math.max(
+    0,
+    EXAMPLES.findIndex((entry) => entry.a === a && entry.b === b),
+  );
+  const step = (delta: number) => {
+    const next = EXAMPLES[(index + delta + EXAMPLES.length) % EXAMPLES.length];
+    setA(next.a);
+    setB(next.b);
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -746,7 +691,7 @@ function ExamplesScene({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIndex((index - 1 + EXAMPLES.length) % EXAMPLES.length)}
+              onClick={() => step(-1)}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-[13px] text-white/70 transition-colors hover:border-white/60 hover:text-white"
               aria-label="Exemplo anterior"
             >
@@ -754,7 +699,7 @@ function ExamplesScene({
             </button>
             <button
               type="button"
-              onClick={() => setIndex((index + 1) % EXAMPLES.length)}
+              onClick={() => step(1)}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-[13px] text-white/70 transition-colors hover:border-white/60 hover:text-white"
               aria-label="Próximo exemplo"
             >
@@ -774,15 +719,7 @@ function ExamplesScene({
           <p className="text-white">c = {formatNumber(c)}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setA(example.a);
-            setB(example.b);
-            onExplore();
-          }}
-          className="btn w-fit"
-        >
+        <button type="button" onClick={onExplore} className="btn w-fit">
           VER NO CONCEITO →
         </button>
       </div>

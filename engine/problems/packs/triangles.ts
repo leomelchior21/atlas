@@ -140,7 +140,7 @@ function buildAngleSum(ctx: GenerateContext): ProblemDraft | null {
     answerValue: c,
     answerDisplay: `${formatNumber(c)}°`,
     diagram: { kind: "triangle-sides", sides: [40, 40, 40], labels: [`${formatNumber(a)}°`, `${formatNumber(b)}°`, "x"] },
-    formula: ctx.difficulty === "leve" ? "a + b + c = 180°" : undefined,
+    formula: "a + b + c = 180°",
     distractors: [
       {
         value: 180 - a,

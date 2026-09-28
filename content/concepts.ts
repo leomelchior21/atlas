@@ -51,7 +51,7 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
     journey: ["EXPLORAR", "ENTENDER", "EXEMPLOS", "APLICAÇÕES"],
     years: [9, 10],
     hintTitle: "EXPERIMENTE",
-    hint: "Arraste os pontos ou ajuste os valores de a e b para ver como a relação se mantém.",
+    hint: "Ajuste a e b nos controles no topo da tela, ou escolha um terno pronto, para ver como a relação se mantém.",
   },
   "geo-angles": {
     id: "geo-angles",
@@ -75,7 +75,7 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
     journey: ["EXPLORAR", "ENTENDER", "EXEMPLOS", "APLICAÇÕES"],
     years: [6, 7],
     hintTitle: "EXPERIMENTE",
-    hint: "Arraste a semirreta móvel e observe quando o ângulo muda de classificação.",
+    hint: "Deslize α no controle do topo, ou toque em uma classificação, e observe quando o ângulo muda de nome.",
   },
   "geo-area": {
     id: "geo-area",
@@ -99,7 +99,7 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
     journey: ["EXPLORAR", "ENTENDER", "EXEMPLOS", "APLICAÇÕES"],
     years: [7, 8],
     hintTitle: "EXPERIMENTE",
-    hint: "Mude a base e a altura e conte as unidades cobertas antes de olhar a fórmula.",
+    hint: "Mude a base e a altura no topo, ou escolha um exemplo, e conte as unidades cobertas antes de olhar a fórmula.",
   },
   "geo-perimeter": {
     id: "geo-perimeter",
@@ -111,7 +111,7 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
       "Perímetro é o comprimento do contorno de uma figura. Não depende do que está dentro, apenas do caminho que cerca a figura.",
     equation: "P = soma dos lados",
     legend: [
-      { symbol: "○", filled: false, label: "vértices", detail: "arraste para deformar a figura" },
+      { symbol: "○", filled: false, label: "vértices", detail: "as pontas do contorno" },
       {
         symbol: "—",
         filled: true,
@@ -123,7 +123,7 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
     journey: ["EXPLORAR", "ENTENDER", "EXEMPLOS", "APLICAÇÕES"],
     years: [6, 7],
     hintTitle: "EXPERIMENTE",
-    hint: "Arraste os vértices e veja o perímetro mudar enquanto a área pode permanecer parecida.",
+    hint: "Escolha a figura e ajuste o tamanho nos controles do topo: veja o perímetro acompanhar o contorno.",
   },
   "geo-triangles": {
     id: "geo-triangles",
@@ -147,7 +147,7 @@ export const CONCEPTS: Record<FunctionalConceptId, ConceptDefinition> = {
     journey: ["EXPLORAR", "ENTENDER", "EXEMPLOS", "APLICAÇÕES"],
     years: [7, 8],
     hintTitle: "EXPERIMENTE",
-    hint: "Arraste um vértice e veja a classificação e a soma dos ângulos se manterem coerentes.",
+    hint: "Ajuste α e β no topo, ou escolha um tipo de triângulo, e veja a classificação mudar com a soma sempre em 180°.",
   },
 };
 

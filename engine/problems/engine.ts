@@ -131,13 +131,15 @@ export function generateFromPack(
     const attemptSeed = attempt === 0 ? seed : `${seed}~${attempt}`;
     const rng = createRng(attemptSeed);
 
+    /*
+     * Difficulty changes how the screen supports the student, not which
+     * question is drawn: every family and template is always eligible.
+     */
     const families = pack.families.filter(
-      (family) =>
-        family.difficulties.includes(request.difficulty) &&
-        (!request.familyId || family.id === request.familyId),
+      (family) => !request.familyId || family.id === request.familyId,
     );
     if (!families.length) {
-      issues.push(issue("no-family", `no family available for ${request.difficulty}`));
+      issues.push(issue("no-family", `no family available for ${conceptId}`));
       break;
     }
     const family = rng.pickWeighted(families, (f: ProblemFamily) => f.weight ?? 1);
@@ -145,7 +147,6 @@ export function generateFromPack(
     const templates = pack.templates.filter(
       (template) =>
         template.familyId === family.id &&
-        template.difficulties.includes(request.difficulty) &&
         (!request.templateId || template.id === request.templateId),
     );
     if (!templates.length) {
@@ -158,7 +159,8 @@ export function generateFromPack(
       rng,
       seed: attemptSeed,
       conceptId,
-      difficulty: request.difficulty,
+      // content is drawn at a neutral level; only the representation follows difficulty
+      difficulty: "normal",
       family,
       templateId: template.id,
     };

@@ -303,6 +303,26 @@ input {
   fill: #fff;
 }
 
+/* the browser would outline the whole glyph box; the map has its own ring */
+.atlas-node-body:focus,
+.atlas-node-body:focus-visible {
+  outline: none;
+}
+
+.atlas-focus-ring {
+  fill: none;
+  stroke: #ffffff;
+  stroke-opacity: 0.7;
+  stroke-width: 1;
+  stroke-dasharray: 2 6;
+  opacity: 0;
+  transition: opacity 160ms var(--ease);
+}
+
+.atlas-node-body:focus-visible .atlas-focus-ring {
+  opacity: 1;
+}
+
 /* ---------------------------------------------------------------- motion */
 
 @keyframes atlas-orbit {
@@ -333,21 +353,6 @@ input {
   }
   50% {
     opacity: 0.55;
-  }
-}
-
-@keyframes atlas-pulse-ring {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.5;
-  }
-  70% {
-    transform: scale(1.22);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1.22);
-    opacity: 0;
   }
 }
 
@@ -382,13 +387,14 @@ input {
 
 .orbit-slow {
   animation: atlas-orbit 26s linear infinite;
-  transform-box: view-box;
+  /* fill-box keeps the orbit centred on its own glyph, never on the viewport */
+  transform-box: fill-box;
   transform-origin: center;
 }
 
 .orbit-med {
   animation: atlas-orbit 44s linear infinite;
-  transform-box: view-box;
+  transform-box: fill-box;
   transform-origin: center;
 }
 
@@ -400,12 +406,6 @@ input {
 
 .ring-shift {
   animation: atlas-ring-shift 11s ease-in-out infinite;
-}
-
-.year-pulse {
-  animation: atlas-pulse-ring 5.6s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 .fade-in {
@@ -553,7 +553,6 @@ input {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .year-pulse,
   .orbit-slow,
   .orbit-med,
   .breathe,

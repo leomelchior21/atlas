@@ -83,13 +83,15 @@ describe("caminho principal", () => {
     await waitFor(() => expect(screen.getByText("DOMÍNIO")).toBeTruthy());
     expect(screen.getByText("MARATONA")).toBeTruthy();
 
-    // CONCEITO: experiência interativa
+    // CONCEITO: experiência interativa — sliders no topo, sem arrastar formas
     fireEvent.click(screen.getByText("CONCEITO"));
     await waitFor(() => expect(screen.getByText("TEOREMA DE PITÁGORAS")).toBeTruthy());
     expect(within(journey()).getByText("EXPLORAR")).toBeTruthy();
     expect(within(journey()).getByText("ENTENDER")).toBeTruthy();
     expect(within(journey()).getByText("APLICAÇÕES")).toBeTruthy();
-    expect(screen.getByText("ARRASTE OS PONTOS")).toBeTruthy();
+    expect(screen.getByLabelText("Valor de a")).toBeTruthy();
+    expect(screen.getByLabelText("Valor de b")).toBeTruthy();
+    expect(screen.queryByText(/ARRASTE/)).toBeNull();
 
     fireEvent.click(within(journey()).getByText("ENTENDER"));
     expect(screen.getByLabelText("Transformar a demonstração")).toBeTruthy();
@@ -102,7 +104,12 @@ describe("caminho principal", () => {
     const alternatives = within(group).getAllByRole("button");
     expect(alternatives.length).toBeGreaterThanOrEqual(2);
     expect(alternatives.length).toBeLessThanOrEqual(5);
+
+    // normal: alternativas visíveis, apoio sob demanda
+    expect(screen.queryByText("DICA")).toBeNull();
+    fireEvent.click(screen.getByText("APOIO"));
     expect(screen.getByText("DICA")).toBeTruthy();
+    expect(screen.getByText("FÓRMULA")).toBeTruthy();
 
     // responde: confirmação discreta, sem tela de comemoração
     fireEvent.click(alternatives[0]);
@@ -112,6 +119,40 @@ describe("caminho principal", () => {
     expect(next.disabled).toBe(false);
     fireEvent.click(next);
     await waitFor(() => expect(screen.queryByText(/CORRETO|REVEJA/)).toBeNull());
+  }, 60000);
+
+  it("usa a dificuldade como nível de apoio, não como banco de questões", async () => {
+    await enterAtlas();
+
+    fireEvent.click(screen.getByRole("button", { name: /MATEMÁTICA/ }));
+    fireEvent.click(await mapNode(/^GEOMETRIA/));
+    fireEvent.click(await mapNode(/^Pitágoras/));
+    fireEvent.click(await screen.findByText("ABRIR CONCEITO"));
+    fireEvent.click(await screen.findByText("MARATONA"));
+    await screen.findByRole("group", { name: "Alternativas" });
+
+    // LEVE: fórmula, dica e alternativas sempre visíveis
+    fireEvent.click(screen.getByRole("button", { name: "LEVE" }));
+    await waitFor(() => expect(screen.getByText("FÓRMULA")).toBeTruthy());
+    expect(screen.getByText("DICA")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Alternativas" })).toBeTruthy();
+
+    // NORMAL: apoio escondido até o botão; alternativas visíveis
+    fireEvent.click(screen.getByRole("button", { name: "NORMAL" }));
+    await waitFor(() => expect(screen.queryByText("FÓRMULA")).toBeNull());
+    expect(screen.queryByText("DICA")).toBeNull();
+    expect(screen.getByText("APOIO")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Alternativas" })).toBeTruthy();
+
+    // AVANÇADA: só o enunciado até o estudante pedir para responder
+    fireEvent.click(screen.getByRole("button", { name: "AVANÇADA" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("group", { name: "Alternativas" })).toBeNull(),
+    );
+    expect(screen.queryByText("FÓRMULA")).toBeNull();
+    fireEvent.click(screen.getByText("RESPONDER"));
+    await waitFor(() => expect(screen.getByRole("group", { name: "Alternativas" })).toBeTruthy());
+    expect(screen.queryByText("FÓRMULA")).toBeNull();
   }, 60000);
 
   it("persiste perfil e XP no armazenamento local", async () => {
