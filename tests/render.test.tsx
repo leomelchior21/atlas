@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AtlasProvider } from "@/store/atlas-store";
 import { Onboarding } from "@/components/onboarding/Onboarding";
-import { MindMap } from "@/components/atlas/MindMap";
+import { HomeView } from "@/components/atlas/HomeView";
+import { SubjectView } from "@/components/atlas/SubjectView";
+import { NodeView } from "@/components/atlas/NodeView";
 import { ConceptLanding } from "@/components/atlas/ConceptLanding";
 import { PlaceholderView } from "@/components/concept/PlaceholderView";
 import { ConceptView } from "@/components/concept/ConceptView";
@@ -32,50 +34,43 @@ describe("renderização das telas", () => {
     expect(html).toContain("ATLAS");
   });
 
-  const mapProps = {
-    focus: null,
-    studentYear: 8,
-    masteryByNode: {},
-    explored: [],
-    selectedId: null,
-    onSelect: () => {},
-    onToggleExpanded: () => {},
-    onSetExpanded: () => {},
-    onClearSelection: () => {},
-    onOpen: () => {},
-  };
-
-  it("renderiza o mapa mental com as três ilhas", () => {
-    const html = render(<MindMap {...mapProps} expanded={["__atlas"]} />);
+  it("renderiza a home com as três matérias", () => {
+    const html = render(<HomeView />);
     expect(html).toContain("MATEMÁTICA");
     expect(html).toContain("FÍSICA");
     expect(html).toContain("QUÍMICA");
-    expect(html).toContain("ENCONTRE SUA ILHA");
+    expect(html).toContain("TOQUE OU APROXIME PARA EXPLORAR");
   });
 
-  it("abre um nível de cada vez", () => {
-    const closed = render(<MindMap {...mapProps} expanded={["__atlas"]} />);
-    expect(closed).not.toContain("NÚMEROS");
-    expect(closed).not.toContain("GEOMETRIA");
+  it("renderiza a matéria com seus territórios", () => {
+    const html = render(<SubjectView nodeId="math-root" />);
+    expect(html).toContain("CONHECIMENTO EM ÓRBITA");
+    expect(html).toContain("NÚMEROS");
+    expect(html).toContain("GEOMETRIA");
+    expect(html).toContain("TRIGONOMETRIA");
+    expect(html).toContain("Formas, espaços e transformações");
+  });
 
-    const opened = render(
-      <MindMap {...mapProps} expanded={["__atlas", "math-root"]} />,
-    );
-    expect(opened).toContain("NÚMEROS");
-    expect(opened).toContain("GEOMETRIA");
-    expect(opened).not.toContain("Pitágoras");
+  it("renderiza um território com seus conceitos e progresso", () => {
+    const html = render(<NodeView nodeId="geo" />);
+    expect(html).toContain("GEOMETRIA");
+    expect(html).toContain("SEU PROGRESSO");
+    expect(html).toContain("Ângulos");
+    expect(html).toContain("Pitágoras");
+    expect(html).toContain("relações no triângulo retângulo");
   });
 
   it("renderiza a tela de entrada do conceito", () => {
     const html = render(<ConceptLanding nodeId="geo-pythagoras" />);
     expect(html).toContain("CONCEITO");
     expect(html).toContain("MARATONA");
-    expect(html).toContain("PITÁGORAS");
-    expect(html).toContain("← VOLTAR AO MAPA");
+    expect(html).toContain("Pitágoras");
+    expect(html).toContain("DOMÍNIO");
 
     const withBranches = render(<ConceptLanding nodeId="geo-triangles" />);
-    expect(withBranches).toContain("TRIÂNGULOS");
-    expect(withBranches).toContain("EXPLORAR RAMIFICAÇÕES");
+    expect(withBranches).toContain("RAMIFICAÇÕES");
+    expect(withBranches).toContain("Classificação");
+    expect(withBranches).toContain("Explorar ramificações");
   });
 
   it("renderiza o estado de território em mapeamento", () => {
@@ -158,12 +153,11 @@ describe("grafo de conteúdo", () => {
     }
   });
 
-  it("posiciona as três ilhas separadamente", () => {
-    const [math, physics, chemistry] = ATLAS.subjects;
+  it("organiza as três matérias com territórios", () => {
     expect(ATLAS.subjects.length).toBe(3);
-    expect(ATLAS.world[math.id].x).toBe(0);
-    expect(ATLAS.world[physics.id].x).toBeLessThan(-1500);
-    expect(ATLAS.world[chemistry.id].x).toBeGreaterThan(1500);
+    for (const subject of ATLAS.subjects) {
+      expect((ATLAS.childrenOf[subject.id] ?? []).length).toBeGreaterThan(3);
+    }
   });
 
   it("mantém as posições determinísticas entre execuções", () => {

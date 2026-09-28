@@ -6,6 +6,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-motion",
     title: "MOVIMENTO",
+    blurb: "Velocidade, aceleração e trajetórias",
     years: [9, 10],
     children: [
       { id: "phy-mru", title: "MRU", connects: ["func-afim"] },
@@ -19,6 +20,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-forces",
     title: "FORÇAS",
+    blurb: "Interações e equilíbrio",
     years: [9, 10, 11],
     children: [
       { id: "phy-leis-newton", title: "Leis de Newton" },
@@ -31,6 +33,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-energy",
     title: "ENERGIA",
+    blurb: "Trabalho, conservação e potência",
     years: [10, 11],
     children: [
       { id: "phy-trabalho", title: "Trabalho" },
@@ -43,6 +46,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-waves",
     title: "ONDAS",
+    blurb: "Som, luz e oscilações",
     years: [11],
     children: [
       { id: "phy-ondulatoria", title: "Ondulatória" },
@@ -55,6 +59,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-electricity",
     title: "ELETRICIDADE",
+    blurb: "Cargas, circuitos e magnetismo",
     years: [10, 11, 12],
     children: [
       { id: "phy-carga", title: "Carga elétrica" },
@@ -68,6 +73,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-heat",
     title: "CALOR",
+    blurb: "Temperatura, calor e gases",
     years: [10, 11],
     children: [
       { id: "phy-temperatura", title: "Temperatura" },
@@ -80,6 +86,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-optics",
     title: "ÓPTICA",
+    blurb: "Luz, lentes e imagens",
     years: [11],
     children: [
       { id: "phy-reflexao", title: "Reflexão" },
@@ -92,6 +99,7 @@ export const PHYSICS_DOMAINS: DomainSeed[] = [
   {
     id: "phy-matter",
     title: "MATÉRIA",
+    blurb: "Estados, densidade e pressão",
     years: [9, 10],
     children: [
       { id: "phy-estados", title: "Estados físicos" },

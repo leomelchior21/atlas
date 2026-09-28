@@ -1,69 +1,33 @@
 "use client";
 
-import { useMemo } from "react";
-import { ATLAS } from "@/content";
+import { useState } from "react";
 import { AtlasMark } from "@/components/atlas/AtlasLogo";
 import { ConceptLanding } from "@/components/atlas/ConceptLanding";
-import { MindMap } from "@/components/atlas/MindMap";
-import { ConnectionsPanel, TopBar } from "@/components/atlas/TopBar";
+import { HomeView } from "@/components/atlas/HomeView";
+import { NodeView } from "@/components/atlas/NodeView";
+import { SubjectView } from "@/components/atlas/SubjectView";
+import { TopBar } from "@/components/atlas/TopBar";
 import { ConceptView } from "@/components/concept/ConceptView";
 import { PlaceholderView } from "@/components/concept/PlaceholderView";
 import { DevPanel } from "@/components/dev/DevPanel";
 import { MarathonView } from "@/components/marathon/MarathonView";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { useAtlas } from "@/store/atlas-store";
-import { useState } from "react";
 
 export function AtlasShell() {
-  const { ready, progress, view, actions, focus, studentYear, selectedId, expanded } =
-    useAtlas();
-  const [connectionsOpen, setConnectionsOpen] = useState(false);
-
-  const masteryByNode = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const node of ATLAS.nodes) {
-      if (!node.conceptId) continue;
-      const record = progress.concepts[node.conceptId];
-      if (!record) continue;
-      map[node.id] = masteryOf(record);
-    }
-    return map;
-  }, [progress.concepts]);
+  const { ready, view, actions } = useAtlas();
+  const [entering, setEntering] = useState(false);
 
   if (!ready) return <BootScreen />;
 
-  if (!progress.student) {
-    return <Onboarding onComplete={actions.completeOnboarding} />;
-  }
-
-  const immersive = view.kind === "concept" || view.kind === "marathon";
-
   return (
     <div className="flex h-full w-full flex-col bg-black">
-      <TopBar
-        compact={immersive}
-        connectionsOpen={connectionsOpen}
-        onToggleConnections={() => setConnectionsOpen((value) => !value)}
-      />
+      <TopBar onEnter={() => setEntering(true)} />
 
       <div className="relative min-h-0 flex-1">
-        <MindMap
-          focus={focus}
-          studentYear={studentYear}
-          masteryByNode={masteryByNode}
-          explored={progress.explored}
-          expanded={expanded}
-          selectedId={selectedId}
-          onSelect={(nodeId) => {
-            setConnectionsOpen(false);
-            actions.selectNode(nodeId);
-          }}
-          onToggleExpanded={actions.toggleExpanded}
-          onSetExpanded={actions.setExpanded}
-          onClearSelection={actions.clearSelection}
-          onOpen={actions.openNode}
-        />
-
+        {view.kind === "home" ? <HomeView /> : null}
+        {view.kind === "subject" ? <SubjectView nodeId={view.nodeId} /> : null}
+        {view.kind === "node" ? <NodeView nodeId={view.nodeId} /> : null}
         {view.kind === "landing" ? <ConceptLanding nodeId={view.nodeId} /> : null}
 
         {view.kind === "concept" ? (
@@ -80,17 +44,21 @@ export function AtlasShell() {
 
         {view.kind === "placeholder" ? (
           <div className="absolute inset-0 z-30 bg-black fade-in">
-            <PlaceholderView nodeId={view.nodeId} onBack={actions.backToMap} />
+            <PlaceholderView nodeId={view.nodeId} onBack={() => actions.openParent(view.nodeId)} />
           </div>
         ) : null}
-
-        {connectionsOpen ? (
-          <ConnectionsPanel
-            nodeId={selectedId ?? focus?.nodeId ?? null}
-            onClose={() => setConnectionsOpen(false)}
-          />
-        ) : null}
       </div>
+
+      {entering ? (
+        <div className="absolute inset-0 z-50 bg-black">
+          <Onboarding
+            onComplete={(name, year) => {
+              actions.completeOnboarding(name, year);
+              setEntering(false);
+            }}
+          />
+        </div>
+      ) : null}
 
       {process.env.NODE_ENV !== "production" ? <DevPanel /> : null}
     </div>
@@ -115,37 +83,4 @@ function BootScreen() {
       </span>
     </div>
   );
-}
-
-const DIFFICULTY_WEIGHT: Record<string, number> = { leve: 1, normal: 1.6, avancada: 2.6 };
-const EXPOSURE_TARGET = 4;
-
-function masteryOf(record: {
-  byDifficulty: Record<
-    string,
-    { attempts: number; correct: number; families: Record<string, { correct: number }> }
-  >;
-  recent: unknown[];
-  streak: number;
-}): number {
-  let weighted = 0;
-  let total = 0;
-  const families = new Set<string>();
-  let attempts = 0;
-  for (const [difficulty, bucket] of Object.entries(record.byDifficulty)) {
-    const weight = DIFFICULTY_WEIGHT[difficulty] ?? 1;
-    const exposure = Math.min(1, bucket.attempts / EXPOSURE_TARGET);
-    const accuracy = bucket.attempts > 0 ? bucket.correct / bucket.attempts : 0;
-    weighted += weight * exposure * accuracy;
-    total += weight;
-    attempts += bucket.attempts;
-    for (const [familyId, family] of Object.entries(bucket.families)) {
-      if (family.correct > 0) families.add(familyId);
-    }
-  }
-  const depth = total > 0 ? weighted / total : 0;
-  const diversity = Math.min(1, families.size / 6);
-  const recentForm = record.recent.length >= 4 ? 1 : 0.5;
-  const overall = 100 * depth * (0.55 + 0.3 * diversity + 0.15 * recentForm);
-  return attempts === 0 ? 0 : Math.min(100, overall);
 }

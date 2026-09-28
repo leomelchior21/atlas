@@ -65,25 +65,27 @@ body {
   width: 100vw;
 }
 
-button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
+@layer base {
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
 
-input {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  outline: none;
-}
+  input {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    outline: none;
+  }
 
-:focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.7);
-  outline-offset: 3px;
+  :focus-visible {
+    outline: 1px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 3px;
+  }
 }
 
 /* ---------------------------------------------------------------- type */
@@ -238,89 +240,12 @@ input {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* ---------------------------------------------------------------- atlas map */
+/* ---------------------------------------------------------------- figures */
 
 .atlas-surface {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-}
-
-.atlas-node {
-  transition: opacity 520ms var(--ease);
-}
-
-.atlas-label {
-  font-family: var(--font-display);
-  fill: #fff;
-  pointer-events: none;
-}
-
-.atlas-label-subject {
-  font-size: calc(13px * var(--inv));
-  letter-spacing: calc(0.42em * var(--inv));
-  text-transform: uppercase;
-}
-
-.atlas-label-domain {
-  font-size: calc(12.5px * var(--inv));
-  letter-spacing: calc(0.26em * var(--inv));
-  text-transform: uppercase;
-}
-
-.atlas-label-concept {
-  font-size: calc(12.5px * var(--inv));
-  letter-spacing: calc(0.015em * var(--inv));
-}
-
-.atlas-label-sub {
-  font-size: calc(11.5px * var(--inv));
-  letter-spacing: calc(0.01em * var(--inv));
-}
-
-/* branches draw themselves when a level opens */
-.atlas-branch {
-  stroke-linecap: round;
-  animation: atlas-draw 620ms var(--ease) both;
-}
-
-@keyframes atlas-draw {
-  from {
-    stroke-dashoffset: var(--len, 600);
-    opacity: 0;
-  }
-  to {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-
-.atlas-node-body {
-  cursor: pointer;
-}
-
-.atlas-node-body:hover .atlas-node-core {
-  fill: #fff;
-}
-
-/* the browser would outline the whole glyph box; the map has its own ring */
-.atlas-node-body:focus,
-.atlas-node-body:focus-visible {
-  outline: none;
-}
-
-.atlas-focus-ring {
-  fill: none;
-  stroke: #ffffff;
-  stroke-opacity: 0.7;
-  stroke-width: 1;
-  stroke-dasharray: 2 6;
-  opacity: 0;
-  transition: opacity 160ms var(--ease);
-}
-
-.atlas-node-body:focus-visible .atlas-focus-ring {
-  opacity: 1;
 }
 
 /* ---------------------------------------------------------------- motion */
@@ -343,16 +268,6 @@ input {
   50% {
     transform: scale(1.03);
     opacity: 1;
-  }
-}
-
-@keyframes atlas-ring-shift {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.55;
   }
 }
 
@@ -392,20 +307,10 @@ input {
   transform-origin: center;
 }
 
-.orbit-med {
-  animation: atlas-orbit 44s linear infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
 .breathe {
   animation: atlas-breathe 5.2s ease-in-out infinite;
   transform-box: fill-box;
   transform-origin: center;
-}
-
-.ring-shift {
-  animation: atlas-ring-shift 11s ease-in-out infinite;
 }
 
 .fade-in {
@@ -418,52 +323,6 @@ input {
 
 .confirm {
   animation: atlas-fade-in 520ms var(--ease) both;
-}
-
-.atlas-pinch-left {
-  animation: atlas-pinch-a 3.6s cubic-bezier(0.32, 0.72, 0.28, 1) infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.atlas-pinch-right {
-  animation: atlas-pinch-b 3.6s cubic-bezier(0.32, 0.72, 0.28, 1) infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-@keyframes atlas-pinch-a {
-  0%,
-  18% {
-    transform: translateX(4px);
-    opacity: 0.5;
-  }
-  50%,
-  66% {
-    transform: translateX(-5px);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(4px);
-    opacity: 0.5;
-  }
-}
-
-@keyframes atlas-pinch-b {
-  0%,
-  18% {
-    transform: translateX(-4px);
-    opacity: 0.5;
-  }
-  50%,
-  66% {
-    transform: translateX(5px);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-4px);
-    opacity: 0.5;
-  }
 }
 
 /* ---------------------------------------------------------------- scroll */
@@ -554,11 +413,7 @@ input {
     transition-duration: 0.001ms !important;
   }
   .orbit-slow,
-  .orbit-med,
-  .breathe,
-  .ring-shift,
-  .atlas-pinch-left,
-  .atlas-pinch-right {
+  .breathe {
     animation: none !important;
   }
 }

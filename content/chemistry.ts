@@ -6,6 +6,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-matter",
     title: "MATÉRIA",
+    blurb: "Substâncias e transformações",
     years: [9],
     children: [
       { id: "chem-substancias", title: "Substâncias" },
@@ -17,6 +18,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-atomic",
     title: "ESTRUTURA ATÔMICA",
+    blurb: "Do átomo às partículas",
     years: [9, 10],
     children: [
       { id: "chem-atomo", title: "Átomo", connects: ["num-notacao"] },
@@ -28,6 +30,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-periodic",
     title: "TABELA PERIÓDICA",
+    blurb: "Elementos e tendências",
     years: [9, 10],
     children: [
       { id: "chem-periodos", title: "Períodos" },
@@ -39,6 +42,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-bonds",
     title: "LIGAÇÕES QUÍMICAS",
+    blurb: "Como os átomos se unem",
     years: [10],
     children: [
       { id: "chem-ionica", title: "Iônica" },
@@ -50,6 +54,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-reactions",
     title: "REAÇÕES",
+    blurb: "Equações e balanceamento",
     years: [10],
     children: [
       { id: "chem-equacoes", title: "Equações" },
@@ -61,6 +66,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-stoich",
     title: "ESTEQUIOMETRIA",
+    blurb: "Quantidades e proporções",
     years: [11],
     children: [
       { id: "chem-mol", title: "Mol" },
@@ -72,6 +78,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-solutions",
     title: "SOLUÇÕES",
+    blurb: "Concentração e misturas",
     years: [11],
     children: [
       { id: "chem-concentracao", title: "Concentração" },
@@ -83,6 +90,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-acids",
     title: "ÁCIDOS E BASES",
+    blurb: "pH, neutralização e indicadores",
     years: [11],
     children: [
       { id: "chem-ph", title: "pH" },
@@ -93,6 +101,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-thermo",
     title: "TERMOQUÍMICA",
+    blurb: "Energia nas reações",
     years: [12],
     children: [
       { id: "chem-entalpia", title: "Entalpia" },
@@ -104,6 +113,7 @@ export const CHEMISTRY_DOMAINS: DomainSeed[] = [
   {
     id: "chem-organic",
     title: "QUÍMICA ORGÂNICA",
+    blurb: "Carbono e cadeias",
     years: [12],
     children: [
       { id: "chem-carbono", title: "Carbono" },

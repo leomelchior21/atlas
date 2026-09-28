@@ -166,6 +166,8 @@ export interface NodeSeed {
   id: string;
   title: string;
   shortTitle?: string;
+  blurb?: string;
+  motto?: string;
   years?: number[];
   status?: NodeStatus;
   conceptId?: FunctionalConceptId;
@@ -199,6 +201,8 @@ function makeNode(
     domainId: opts.domainId,
     title: seed.title,
     shortTitle: seed.shortTitle ?? seed.title,
+    ...(seed.blurb ? { blurb: seed.blurb } : {}),
+    ...(seed.motto ? { motto: seed.motto } : {}),
     recommendedYears: seed.years ?? [],
     status: seed.status ?? (hasConcept ? "active" : "placeholder"),
     position: opts.position,
@@ -216,9 +220,16 @@ export function buildSubjectNodes(
   position: Vec2,
   id: string,
   title: string,
+  motto?: string,
 ): AtlasNode {
   return makeNode(
-    { id, title, years: [6, 7, 8, 9, 10, 11, 12], status: "prototype" },
+    {
+      id,
+      title,
+      years: [6, 7, 8, 9, 10, 11, 12],
+      status: "prototype",
+      ...(motto ? { motto } : {}),
+    },
     { subject, depth: 0, parentId: null, domainId: id, position, angle: 0 },
   );
 }

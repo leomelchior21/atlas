@@ -38,8 +38,9 @@ function buildSubject(
   id: string,
   title: string,
   domains: DomainSeed[],
+  motto?: string,
 ): AtlasNode[] {
-  const root = buildSubjectNodes(subject, SUBJECT_ORIGIN[id], id, title);
+  const root = buildSubjectNodes(subject, SUBJECT_ORIGIN[id], id, title, motto);
   const domainNodes = buildDomainNodes(
     subject,
     domains,
@@ -55,9 +56,27 @@ function buildSubject(
 
 function assemble(): AtlasGraph {
   const nodes = [
-    ...buildSubject("math", MATH_ID, "MATEMÁTICA", MATH_DOMAINS),
-    ...buildSubject("physics", PHYSICS_ID, "FÍSICA", PHYSICS_DOMAINS),
-    ...buildSubject("chemistry", CHEMISTRY_ID, "QUÍMICA", CHEMISTRY_DOMAINS),
+    ...buildSubject(
+      "math",
+      MATH_ID,
+      "MATEMÁTICA",
+      MATH_DOMAINS,
+      "PADRÕES · ESTRUTURAS · POSSIBILIDADES",
+    ),
+    ...buildSubject(
+      "physics",
+      PHYSICS_ID,
+      "FÍSICA",
+      PHYSICS_DOMAINS,
+      "MOVIMENTO · FORÇAS · ENERGIA",
+    ),
+    ...buildSubject(
+      "chemistry",
+      CHEMISTRY_ID,
+      "QUÍMICA",
+      CHEMISTRY_DOMAINS,
+      "MATÉRIA · LIGAÇÕES · TRANSFORMAÇÕES",
+    ),
   ];
 
   const byId: Record<string, AtlasNode> = {};

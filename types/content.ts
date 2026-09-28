@@ -24,6 +24,10 @@ export interface AtlasNode {
   domainId: string | null;
   title: string;
   shortTitle: string;
+  /** one-line description shown on cards */
+  blurb?: string;
+  /** motto shown under a subject or territory title */
+  motto?: string;
   /** 6..9 = Ensino Fundamental, 10 = 1º EM, 11 = 2º EM, 12 = 3º EM */
   recommendedYears: number[];
   status: NodeStatus;

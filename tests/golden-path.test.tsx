@@ -32,6 +32,8 @@ async function enterAtlas() {
       <AtlasShell />
     </AtlasProvider>,
   );
+  await waitFor(() => expect(screen.getByText("ENTRAR")).toBeTruthy());
+  fireEvent.click(screen.getByText("ENTRAR"));
   await waitFor(() => expect(screen.getByLabelText("Seu nome")).toBeTruthy());
   fireEvent.change(screen.getByLabelText("Seu nome"), { target: { value: "Marina" } });
   fireEvent.click(screen.getByText("CONTINUAR"));
@@ -40,51 +42,46 @@ async function enterAtlas() {
   await waitFor(() => expect(screen.getByText("MATEMÁTICA")).toBeTruthy());
 }
 
-/** only the nodes drawn on the map, never the panel entries */
-async function mapNode(name: RegExp): Promise<Element> {
-  return await waitFor(
-    () => {
-      const match = screen
-        .getAllByRole("button", { name })
-        .find((element) => element.tagName.toLowerCase() === "g");
-      if (!match) throw new Error(`nó do mapa não encontrado: ${name}`);
-      return match;
-    },
-    { timeout: 9000 },
-  );
+/** first match: responsive layouts render some controls twice */
+const firstButton = (name: RegExp | string) => screen.getAllByRole("button", { name })[0];
+const firstText = (text: string) => screen.getAllByText(text)[0];
+
+/** walks home → Matemática → Geometria and stops at the territory */
+async function openGeometry() {
+  fireEvent.click(screen.getByRole("button", { name: "MATEMÁTICA" }));
+  await waitFor(() => expect(screen.getByText("CONHECIMENTO EM ÓRBITA")).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: /^GEOMETRIA/ }));
+  await waitFor(() => expect(screen.getAllByText("SEU PROGRESSO").length).toBeGreaterThan(0));
 }
 
-const panel = () => screen.getByLabelText(/^Detalhes de/);
 const journey = () => screen.getByRole("navigation", { name: "Percurso do conceito" });
 
 describe("caminho principal", () => {
-  it("leva do onboarding até a maratona de Pitágoras", async () => {
+  it("leva da home até a maratona de Pitágoras", async () => {
     await enterAtlas();
 
-    // visão geral: apenas as três ilhas, sem painel
+    // home: as três matérias, nada mais
     expect(screen.getByText("FÍSICA")).toBeTruthy();
     expect(screen.getByText("QUÍMICA")).toBeTruthy();
-    expect(screen.getByText("ENCONTRE SUA ILHA")).toBeTruthy();
-    expect(screen.queryByLabelText(/^Detalhes de/)).toBeNull();
+    expect(screen.getByText("TOQUE OU APROXIME PARA EXPLORAR")).toBeTruthy();
 
-    // ilha → territórios
-    fireEvent.click(screen.getByRole("button", { name: /MATEMÁTICA/ }));
-    const geometry = await mapNode(/^GEOMETRIA/);
-    expect(within(panel()).getByText("NÚMEROS")).toBeTruthy();
+    // matéria → territórios
+    fireEvent.click(screen.getByRole("button", { name: "MATEMÁTICA" }));
+    await waitFor(() => expect(screen.getByText("CONHECIMENTO EM ÓRBITA")).toBeTruthy());
+    expect(firstText("NÚMEROS")).toBeTruthy();
 
     // território → conceitos
-    fireEvent.click(geometry);
-    const pythagoras = await mapNode(/^Pitágoras/);
-    expect(within(panel()).getByText("Triângulos")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^GEOMETRIA/ }));
+    await waitFor(() => expect(screen.getAllByText("SEU PROGRESSO").length).toBeGreaterThan(0));
+    expect(firstText("Ângulos")).toBeTruthy();
 
-    // conceito → tela de entrada (uma representação, duas portas)
-    fireEvent.click(pythagoras);
-    fireEvent.click(await screen.findByText("ABRIR CONCEITO"));
+    // conceito → tela de entrada
+    fireEvent.click(firstButton(/^Pitágoras/));
     await waitFor(() => expect(screen.getByText("DOMÍNIO")).toBeTruthy());
-    expect(screen.getByText("MARATONA")).toBeTruthy();
+    expect(firstButton(/MARATONA/)).toBeTruthy();
 
     // CONCEITO: experiência interativa — sliders no topo, sem arrastar formas
-    fireEvent.click(screen.getByText("CONCEITO"));
+    fireEvent.click(firstButton(/CONCEITO/));
     await waitFor(() => expect(screen.getByText("TEOREMA DE PITÁGORAS")).toBeTruthy());
     expect(within(journey()).getByText("EXPLORAR")).toBeTruthy();
     expect(within(journey()).getByText("ENTENDER")).toBeTruthy();
@@ -97,8 +94,8 @@ describe("caminho principal", () => {
     expect(screen.getByLabelText("Transformar a demonstração")).toBeTruthy();
 
     // volta para a entrada e entra na MARATONA
-    fireEvent.click(screen.getByRole("button", { name: "CONCEITO" }));
-    fireEvent.click(await screen.findByText("MARATONA"));
+    fireEvent.click(firstButton(/CONCEITO/));
+    fireEvent.click(await screen.findByRole("button", { name: /MARATONA/ }));
 
     const group = await screen.findByRole("group", { name: "Alternativas" });
     const alternatives = within(group).getAllByRole("button");
@@ -123,12 +120,11 @@ describe("caminho principal", () => {
 
   it("usa a dificuldade como nível de apoio, não como banco de questões", async () => {
     await enterAtlas();
+    await openGeometry();
 
-    fireEvent.click(screen.getByRole("button", { name: /MATEMÁTICA/ }));
-    fireEvent.click(await mapNode(/^GEOMETRIA/));
-    fireEvent.click(await mapNode(/^Pitágoras/));
-    fireEvent.click(await screen.findByText("ABRIR CONCEITO"));
-    fireEvent.click(await screen.findByText("MARATONA"));
+    fireEvent.click(firstButton(/^Pitágoras/));
+    await waitFor(() => expect(screen.getByText("DOMÍNIO")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /MARATONA/ }));
     await screen.findByRole("group", { name: "Alternativas" });
 
     // LEVE: fórmula, dica e alternativas sempre visíveis
@@ -167,33 +163,26 @@ describe("caminho principal", () => {
 
   it("mostra o território em mapeamento", async () => {
     await enterAtlas();
+    await openGeometry();
 
-    fireEvent.click(screen.getByRole("button", { name: /MATEMÁTICA/ }));
-    fireEvent.click(await mapNode(/^GEOMETRIA/));
-    fireEvent.click(await mapNode(/^Polígonos/));
-    fireEvent.click(await mapNode(/^Classificação/));
-
-    fireEvent.click(await within(panel()).findByText("ABRIR"));
+    fireEvent.click(firstButton(/^Semelhança/));
     await waitFor(() =>
       expect(screen.getByText("ESTE TERRITÓRIO AINDA ESTÁ SENDO MAPEADO.")).toBeTruthy(),
     );
     fireEvent.click(screen.getByText("← VOLTAR AO ATLAS"));
-    await waitFor(() => expect(screen.getAllByText("MATEMÁTICA").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText("Ângulos").length).toBeGreaterThan(0));
   }, 60000);
 
-  it("mantém o mapa utilizável com movimento reduzido", async () => {
-    window.matchMedia = ((query: string) => ({
-      matches: query.includes("prefers-reduced-motion"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    })) as unknown as typeof window.matchMedia;
-
+  it("navega de volta pela hierarquia", async () => {
     await enterAtlas();
-    expect(screen.getByText("ENCONTRE SUA ILHA")).toBeTruthy();
-  }, 40000);
+    await openGeometry();
+
+    // voltar do território para a matéria
+    fireEvent.click(firstButton(/Voltar para MATEMÁTICA/));
+    await waitFor(() => expect(screen.getByText("CONHECIMENTO EM ÓRBITA")).toBeTruthy());
+
+    // e da matéria para a home
+    fireEvent.click(firstButton(/INÍCIO/));
+    await waitFor(() => expect(screen.getByText("TOQUE OU APROXIME PARA EXPLORAR")).toBeTruthy());
+  }, 60000);
 });

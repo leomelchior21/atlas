@@ -6,6 +6,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
   {
     id: "math-numbers",
     title: "NÚMEROS",
+    blurb: "Do natural ao complexo",
     years: [6, 7, 8, 9],
     children: [
       { id: "num-naturais", title: "Naturais", years: [6] },
@@ -23,6 +24,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
   {
     id: "math-algebra",
     title: "ÁLGEBRA",
+    blurb: "Linguagem e generalizações",
     years: [7, 8, 9, 10],
     children: [
       { id: "alg-expressoes", title: "Expressões", years: [7] },
@@ -39,12 +41,15 @@ export const MATH_DOMAINS: DomainSeed[] = [
   {
     id: "geo",
     title: "GEOMETRIA",
+    blurb: "Formas, espaços e transformações",
+    motto: "FORMAS · ESPAÇOS · RELAÇÕES",
     years: [6, 7, 8, 9, 10, 11, 12],
     status: "prototype",
     children: [
       {
         id: "geo-angles",
         title: "Ângulos",
+        blurb: "aberturas e direções",
         years: [6, 7],
         conceptId: "geo-angles",
         code: "ANG",
@@ -53,6 +58,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-polygons",
         title: "Polígonos",
+        blurb: "formas planas e seus lados",
         years: [7, 8],
         connects: ["geo-angles", "geo-perimeter", "geo-area"],
         children: [
@@ -76,6 +82,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-triangles",
         title: "Triângulos",
+        blurb: "lados, ângulos e classificações",
         years: [7, 8, 9],
         conceptId: "geo-triangles",
         code: "TRI",
@@ -110,6 +117,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-perimeter",
         title: "Perímetro",
+        blurb: "medindo contornos",
         years: [6, 7],
         conceptId: "geo-perimeter",
         code: "PER",
@@ -118,6 +126,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-area",
         title: "Área",
+        blurb: "medindo superfícies",
         years: [7, 8],
         conceptId: "geo-area",
         code: "AREA",
@@ -126,18 +135,21 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-similarity",
         title: "Semelhança",
+        blurb: "formas proporcionais",
         years: [9],
         connects: ["geo-triangles", "geo-trigonometry"],
       },
       {
         id: "geo-congruence",
         title: "Congruência",
+        blurb: "mesma forma e medida",
         years: [9],
         connects: ["geo-triangles"],
       },
       {
         id: "geo-pythagoras",
         title: "Pitágoras",
+        blurb: "relações no triângulo retângulo",
         years: [9, 10],
         conceptId: "geo-pythagoras",
         code: "PYT",
@@ -146,6 +158,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-circle",
         title: "Circunferência",
+        blurb: "raios, arcos e comprimentos",
         years: [8, 9],
         connects: ["geo-area"],
         children: [
@@ -159,6 +172,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-space",
         title: "Geometria espacial",
+        blurb: "sólidos e volumes",
         years: [10, 11],
         connects: ["geo-area", "geo-solid-volume"],
         children: [
@@ -179,6 +193,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
       {
         id: "geo-analytic",
         title: "Geometria analítica",
+        blurb: "formas no plano cartesiano",
         years: [11],
         connects: ["func-cartesiano", "geo-pythagoras"],
         children: [
@@ -198,6 +213,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
   {
     id: "math-measures",
     title: "MEDIDAS",
+    blurb: "Grandezas no mundo real",
     years: [6, 7, 8, 9],
     children: [
       { id: "med-comprimento", title: "Comprimento", years: [6, 7] },
@@ -222,6 +238,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
   {
     id: "math-functions",
     title: "FUNÇÕES",
+    blurb: "Relações e variações",
     years: [9, 10, 11, 12],
     children: [
       {
@@ -251,7 +268,8 @@ export const MATH_DOMAINS: DomainSeed[] = [
   },
   {
     id: "math-stats",
-    title: "ESTATÍSTICA",
+    title: "ESTATÍSTICA & PROBABILIDADE",
+    blurb: "Dados, incertezas e decisões",
     years: [6, 7, 8, 9, 11],
     children: [
       { id: "sta-tabelas", title: "Tabelas", years: [6, 7] },
@@ -268,6 +286,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
     id: "math-finance",
     title: "MAT. FINANCEIRA",
     shortTitle: "MATEMÁTICA FINANCEIRA",
+    blurb: "Planejamento e aplicações",
     years: [8, 9, 10, 11, 12],
     children: [
       { id: "fin-porcentagem", title: "Porcentagem", years: [8, 9], connects: ["num-porcentagem"] },
@@ -280,6 +299,7 @@ export const MATH_DOMAINS: DomainSeed[] = [
   {
     id: "math-trig",
     title: "TRIGONOMETRIA",
+    blurb: "Ângulos, ciclos e ondas",
     years: [9, 10, 11, 12],
     children: [
       {
